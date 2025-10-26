@@ -1,6 +1,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import './src/index.css';
 // FIX: Changed single quotes to double quotes for consistency.
 import App from "./App";
 

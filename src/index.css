@@ -6,6 +6,28 @@
   html {
     font-family: 'Tajawal', sans-serif;
   }
+  
+  input[type='text'],
+  input[type='number'],
+  input[type='date'],
+  input[type='email'],
+  input[type='tel'],
+  select,
+  textarea {
+    @apply block w-full px-3 py-2 rounded-md border border-slate-300 bg-white shadow-sm transition-colors duration-150 ease-in-out;
+    @apply focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary;
+    @apply disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500;
+  }
+  
+  input[type='checkbox'],
+  input[type='radio'] {
+    @apply h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary;
+  }
+  
+  @page {
+    size: A4;
+    margin: 0.75in;
+  }
 }
 
 @layer components {

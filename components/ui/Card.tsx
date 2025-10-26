@@ -25,5 +25,4 @@ const CardContent: React.FC<{ children: React.ReactNode; className?: string }> =
   </div>
 );
 
-export default Card;
-export { CardHeader, CardTitle, CardContent };
+export { Card, CardHeader, CardTitle, CardContent };
