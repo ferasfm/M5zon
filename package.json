@@ -4,7 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node start-simple.js",
+    "dev:force": "vite",
+    "dev:safe": "npm run check-running && npm run check-port && vite",
+    "start": "node scripts/start-server.js",
+    "check-port": "node scripts/check-port.js",
+    "check-running": "node scripts/check-running.js",
+    "stop": "node scripts/stop-server.js",
+    "status": "node scripts/check-running.js",
+    "restart": "npm run stop && npm run dev",
+    "server:config": "node server.config.js",
     "build": "vite build",
     "preview": "vite preview",
     "db:init": "node ./scripts/run-sql.js"
