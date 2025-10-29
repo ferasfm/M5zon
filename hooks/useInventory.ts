@@ -421,18 +421,38 @@ export const useInventory = (): UseInventoryReturn | null => {
     
     // --- LOCATIONS API ---
     // The implementation for these requires more thought on cascade deletes, so we'll do simple operations for now.
+    // Helper function to convert snake_case to camelCase for location data
+    const convertLocationData = (data: any) => {
+        if (Array.isArray(data)) {
+            return data.map(item => convertLocationData(item));
+        }
+        return {
+            ...data,
+            provinceId: data.province_id,
+            areaId: data.area_id,
+        };
+    };
+
     const createApi = <T extends {id: string}>(tableName: string, state: T[], setter: React.Dispatch<React.SetStateAction<T[]>>, dependencies?: {table: string, items: any[], field: string, errorMsg: string}) => ({
         add: async (itemData: Omit<T, 'id'>) => {
             if (!supabase) return;
             const { data, error } = await supabase.from(tableName).insert([itemData]).select();
             if (error) notification?.addNotification(`Failed to add: ${error.message}`, 'error');
-            else if (data) setter(prev => [...prev, data[0]]);
+            else if (data) {
+                const convertedData = convertLocationData(data[0]);
+                setter(prev => [...prev, convertedData]);
+                notification?.addNotification(`تمت الإضافة بنجاح.`, 'success');
+            }
         },
         update: async (item: T) => {
             if (!supabase) return;
             const { data, error } = await supabase.from(tableName).update(item).eq('id', item.id).select();
             if (error) notification?.addNotification(`Failed to update: ${error.message}`, 'error');
-            else if (data) setter(prev => prev.map(p => p.id === item.id ? data[0] : p));
+            else if (data) {
+                const convertedData = convertLocationData(data[0]);
+                setter(prev => prev.map(p => p.id === item.id ? convertedData : p));
+                notification?.addNotification(`تم التحديث بنجاح.`, 'success');
+            }
         },
         delete: async (id: string) => {
             if (!supabase) return;
@@ -442,7 +462,10 @@ export const useInventory = (): UseInventoryReturn | null => {
             }
             const { error } = await supabase.from(tableName).delete().eq('id', id);
             if (error) notification?.addNotification(`Failed to delete: ${error.message}`, 'error');
-            else setter(prev => prev.filter(p => p.id !== id));
+            else {
+                setter(prev => prev.filter(p => p.id !== id));
+                notification?.addNotification(`تم الحذف بنجاح.`, 'success');
+            }
         },
     });
 
