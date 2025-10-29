@@ -1,0 +1,50 @@
+{
+  "connections": [
+    {
+      "id": "default",
+      "name": "main-db",
+      "displayName": "قاعدة البيانات الرئيسية",
+      "url": "https://your-project.supabase.co",
+      "key": "your-anon-key-here",
+      "isActive": true,
+      "health": "healthy",
+      "metadata": {
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z",
+        "connectionCount": 0
+      }
+    }
+  ],
+  "security": {
+    "encryptionEnabled": true,
+    "sessionTimeout": 30,
+    "autoLogout": true,
+    "auditLogEnabled": true,
+    "maxConnectionAttempts": 3,
+    "lockoutDuration": 15
+  },
+  "backup": {
+    "autoBackupEnabled": true,
+    "retentionDays": 30,
+    "compressionEnabled": true,
+    "backupBeforeDisconnect": true,
+    "maxBackupSize": 100
+  },
+  "offline": {
+    "enabled": false,
+    "maxCacheSize": 50,
+    "syncInterval": 300,
+    "conflictResolutionStrategy": "manual"
+  },
+  "ui": {
+    "theme": "light",
+    "language": "ar",
+    "showAdvancedOptions": false,
+    "autoRefreshInterval": 30
+  },
+  "system": {
+    "version": "1.0.0",
+    "installDate": "2024-01-01T00:00:00.000Z",
+    "lastUpdated": "2024-01-01T00:00:00.000Z"
+  }
+}

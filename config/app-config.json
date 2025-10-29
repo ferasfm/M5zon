@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0",
+  "defaultSettings": {
+    "connections": [],
+    "security": {
+      "encryptionEnabled": true,
+      "sessionTimeout": 30,
+      "autoLogout": true,
+      "auditLogEnabled": true,
+      "maxConnectionAttempts": 3,
+      "lockoutDuration": 15
+    },
+    "backup": {
+      "autoBackupEnabled": true,
+      "retentionDays": 30,
+      "compressionEnabled": true,
+      "backupBeforeDisconnect": true,
+      "maxBackupSize": 100
+    },
+    "offline": {
+      "enabled": false,
+      "maxCacheSize": 50,
+      "syncInterval": 300,
+      "conflictResolutionStrategy": "manual"
+    },
+    "ui": {
+      "theme": "light",
+      "language": "ar",
+      "showAdvancedOptions": false,
+      "autoRefreshInterval": 30
+    }
+  },
+  "deployment": {
+    "useFileConfig": true,
+    "configFilePath": "./config/user-settings.json",
+    "fallbackToLocalStorage": true
+  }
+}

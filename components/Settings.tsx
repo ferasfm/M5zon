@@ -7,6 +7,9 @@ import { UseInventoryReturn } from '../types';
 import { useSettings } from '../contexts/SettingsContext';
 import SystemSettings from './SystemSettings';
 import DatabaseSettings from './DatabaseSettings';
+import AppSettingsPanel from './AppSettingsPanel';
+import SettingsTest from './SettingsTest';
+import DatabaseResetTest from './DatabaseResetTest';
 
 interface SettingsProps {
     inventory: UseInventoryReturn;
@@ -52,11 +55,21 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
       alert('تم حفظ حدود التنبيه بنجاح');
     };
 
-    const handleResetData = () => {
+    const handleResetData = async () => {
         if (resetConfirmationText === RESET_CONFIRMATION_WORD) {
-            wipeAllData();
+            console.log('🗑️ المستخدم أكد إعادة تعيين قاعدة البيانات');
+            
+            try {
+                await wipeAllData();
+                console.log('✅ تمت عملية إعادة التعيين بنجاح');
+            } catch (error) {
+                console.error('❌ فشل في إعادة تعيين قاعدة البيانات:', error);
+            }
+            
             setIsResetModalOpen(false);
             setResetConfirmationText('');
+        } else {
+            console.log('❌ كلمة التأكيد غير صحيحة:', resetConfirmationText, 'المطلوب:', RESET_CONFIRMATION_WORD);
         }
     };
 
@@ -65,6 +78,9 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
             <div className="space-y-6">
                 <h1 className="text-3xl font-bold text-dark">الإعدادات</h1>
 
+                <SettingsTest />
+                <DatabaseResetTest />
+                <AppSettingsPanel />
                 <SystemSettings />
                 <DatabaseSettings />
 

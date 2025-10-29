@@ -16,6 +16,7 @@ import { Page } from './types';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { SupabaseProvider, useSupabase } from './contexts/SupabaseContext';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import ToastContainer from './components/ui/ToastContainer';
 
 const MainApp: React.FC = () => {
@@ -67,11 +68,13 @@ const MainApp: React.FC = () => {
 const App: React.FC = () => {
     return (
         <SupabaseProvider>
-            <SettingsProvider>
-                <NotificationProvider>
-                    <MainApp />
-                </NotificationProvider>
-            </SettingsProvider>
+            <AppSettingsProvider>
+                <SettingsProvider>
+                    <NotificationProvider>
+                        <MainApp />
+                    </NotificationProvider>
+                </SettingsProvider>
+            </AppSettingsProvider>
         </SupabaseProvider>
     );
 };

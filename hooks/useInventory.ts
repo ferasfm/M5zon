@@ -99,16 +99,61 @@ export const useInventory = (): UseInventoryReturn | null => {
     }, [fetchData]);
 
     const wipeAllData = async () => {
-        if (!supabase) return;
+        if (!supabase) {
+            notification?.addNotification('لا يوجد اتصال بقاعدة البيانات', 'error');
+            return;
+        }
+        
         const tables = ['inventory_items', 'products', 'suppliers', 'clients', 'areas', 'provinces'];
+        
         try {
+            console.log('🗑️ بدء عملية حذف جميع البيانات...');
+            
             for (const table of tables) {
-                const { error } = await supabase.from(table).delete().neq('id', 'this-will-never-be-equal'); // A trick to delete all rows
-                if (error) throw error;
+                console.log(`🗑️ حذف البيانات من جدول: ${table}`);
+                
+                // أولاً، جلب جميع الصفوف ثم حذفها
+                const { data: allRows, error: fetchError } = await supabase
+                    .from(table)
+                    .select('id');
+                
+                if (fetchError) {
+                    console.error(`❌ خطأ في جلب بيانات جدول ${table}:`, fetchError);
+                    throw fetchError;
+                }
+                
+                if (allRows && allRows.length > 0) {
+                    const { error } = await supabase
+                        .from(table)
+                        .delete()
+                        .in('id', allRows.map(row => row.id));
+                    
+                    if (error) {
+                        console.error(`❌ خطأ في حذف جدول ${table}:`, error);
+                        throw error;
+                    }
+                    
+                    console.log(`✅ تم حذف ${allRows.length} صف من جدول ${table}`);
+                } else {
+                    console.log(`ℹ️ جدول ${table} فارغ بالفعل`);
+                }
+                
+                if (error) {
+                    console.error(`❌ خطأ في حذف جدول ${table}:`, error);
+                    throw error;
+                }
+                
+                console.log(`✅ تم حذف جدول ${table} بنجاح`);
             }
+            
+            console.log('✅ تم حذف جميع البيانات بنجاح');
             notification?.addNotification('تم حذف جميع البيانات بنجاح.', 'success');
+            
+            // إعادة تحميل البيانات
             await fetchData();
+            
         } catch (error: any) {
+            console.error('❌ فشل في حذف البيانات:', error);
             notification?.addNotification(`فشل حذف البيانات: ${error.message}`, 'error');
         }
     };
