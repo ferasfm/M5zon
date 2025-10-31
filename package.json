@@ -1,7 +1,12 @@
 {
-  "name": "إدارة-المخزون-الاحترافية",
+  "name": "m5zon-inventory-pro",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "نظام إدارة المخزون الاحترافي - برنامج متكامل لإدارة المخزون والمبيعات",
+  "author": {
+    "name": "M5zon",
+    "email": "info@m5zon.com"
+  },
   "type": "module",
   "main": "electron/main.js",
   "homepage": "./",
@@ -19,7 +24,9 @@
     "restart": "npm run stop && npm run dev",
     "server:config": "node server.config.js",
     "build": "vite build",
-    "build:electron": "npm run build && electron-builder",
+    "build:electron": "npm run build && electron-builder --win",
+    "build:portable": "npm run build && electron-builder --win portable",
+    "build:installer": "npm run build && electron-builder --win nsis",
     "preview": "vite preview",
     "db:init": "node ./scripts/run-sql.js"
   },
@@ -61,17 +68,26 @@
     },
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
       ],
-      "icon": "public/icon.png"
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "إدارة المخزون الاحترافية"
+      "shortcutName": "إدارة المخزون الاحترافية",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
     }
   }
 }

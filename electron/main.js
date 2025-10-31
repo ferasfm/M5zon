@@ -1,10 +1,12 @@
 import { app, BrowserWindow, Menu, ipcMain } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import isDev from 'electron-is-dev';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// بديل لـ electron-is-dev
+const isDev = !app.isPackaged;
 
 let mainWindow;
 
@@ -16,25 +18,22 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 768,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      sandbox: true,
+      sandbox: false,
     },
     icon: path.join(__dirname, '../public/icon.png'),
   });
 
   // تحميل التطبيق
-  const startUrl = isDev
-    ? 'http://localhost:5173' // منفذ Vite في وضع التطوير
-    : `file://${path.join(__dirname, '../dist/index.html')}`; // ملف HTML المبني
-
-  mainWindow.loadURL(startUrl);
-
-  // فتح أدوات المطور في وضع التطوير
   if (isDev) {
+    mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
+  } else {
+    // في وضع الإنتاج، الملفات موجودة في نفس المجلد
+    const indexPath = path.join(process.resourcesPath, 'app.asar', 'dist', 'index.html');
+    mainWindow.loadFile(indexPath);
   }
 
   // معالجة إغلاق النافذة

@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
         strictPort: false,
         open: false,
       },
+      base: './',
       build: {
         outDir: 'dist',
         emptyOutDir: true,

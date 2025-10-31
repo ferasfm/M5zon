@@ -48,6 +48,7 @@ export const useInventory = (): UseInventoryReturn | null => {
                 } else if (tableName === 'suppliers' && data) {
                      const parsedData = data.map((supplier: any) => ({
                         ...supplier,
+                        contactPerson: supplier.contact_person,
                         priceAgreements: supplier.price_agreements?.map((pa: any) => ({
                             ...pa,
                             startDate: new Date(pa.start_date)
@@ -355,21 +356,51 @@ export const useInventory = (): UseInventoryReturn | null => {
     // --- SUPPLIERS API ---
     const addSupplier = async (supplierData: Omit<Supplier, 'id' | 'priceAgreements'>) => {
         if (!supabase) return;
-        const { data, error } = await supabase.from('suppliers').insert([{ ...supplierData, price_agreements: [] }]).select();
+        // تحويل camelCase إلى snake_case لقاعدة البيانات
+        const dbData = {
+            name: supplierData.name,
+            contact_person: supplierData.contactPerson,
+            phone: supplierData.phone,
+            email: supplierData.email,
+            address: supplierData.address,
+            price_agreements: []
+        };
+        const { data, error } = await supabase.from('suppliers').insert([dbData]).select();
         if (error) {
             notification?.addNotification(`فشل إضافة المورد: ${error.message}`, 'error');
         } else if (data) {
-            setSuppliers(prev => [...prev, data[0]]);
+            // تحويل snake_case إلى camelCase للتطبيق
+            const supplier = {
+                ...data[0],
+                contactPerson: data[0].contact_person,
+                priceAgreements: data[0].price_agreements || []
+            };
+            setSuppliers(prev => [...prev, supplier]);
             notification?.addNotification('تمت إضافة المورد بنجاح.', 'success');
         }
     };
     const updateSupplier = async (updatedSupplier: Supplier) => {
         if (!supabase) return;
-        const { data, error } = await supabase.from('suppliers').update(updatedSupplier).eq('id', updatedSupplier.id).select();
+        // تحويل camelCase إلى snake_case
+        const dbData = {
+            name: updatedSupplier.name,
+            contact_person: updatedSupplier.contactPerson,
+            phone: updatedSupplier.phone,
+            email: updatedSupplier.email,
+            address: updatedSupplier.address,
+            price_agreements: updatedSupplier.priceAgreements || []
+        };
+        const { data, error } = await supabase.from('suppliers').update(dbData).eq('id', updatedSupplier.id).select();
         if (error) {
             notification?.addNotification(`فشل تحديث المورد: ${error.message}`, 'error');
         } else if (data) {
-            setSuppliers(prev => prev.map(s => s.id === updatedSupplier.id ? data[0] : s));
+            // تحويل snake_case إلى camelCase
+            const supplier = {
+                ...data[0],
+                contactPerson: data[0].contact_person,
+                priceAgreements: data[0].price_agreements || []
+            };
+            setSuppliers(prev => prev.map(s => s.id === updatedSupplier.id ? supplier : s));
             notification?.addNotification('تم تحديث المورد بنجاح.', 'success');
         }
     };
