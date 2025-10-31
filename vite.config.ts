@@ -8,10 +8,15 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       server: {
-        port: 3000,
+        port: 5173,
         host: '0.0.0.0',
-        strictPort: true, // فشل إذا كان المنفذ مستخدم
-        open: false, // منع فتح المتصفح تلقائياً
+        strictPort: false,
+        open: false,
+      },
+      build: {
+        outDir: 'dist',
+        emptyOutDir: true,
+        sourcemap: false,
       },
       plugins: [react()],
       define: {
