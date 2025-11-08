@@ -275,20 +275,17 @@ export const useInventory = (): UseInventoryReturn | null => {
                 warrantyEndDate = endDate;
             }
             // تحويل أسماء الأعمدة لتتوافق مع قاعدة البيانات
-            const dbItem = {
-                ...item,
-                warranty_end_date: warrantyEndDate,
+            const dbItem: any = {
                 product_id: item.productId,
+                serial_number: item.serialNumber,
                 cost_price: item.costPrice,
+                status: item.status,
+                purchase_date: item.purchaseDate,
                 supplier_id: item.supplierId,
-                destination_client_id: item.destinationClientId
+                destination_client_id: item.destinationClientId,
+                purchase_reason: item.purchaseReason,
+                warranty_end_date: warrantyEndDate
             };
-
-            // حذف الخصائص القديمة
-            delete dbItem.productId;
-            delete dbItem.costPrice;
-            delete dbItem.supplierId;
-            delete dbItem.destinationClientId;
 
             return dbItem;
         });
