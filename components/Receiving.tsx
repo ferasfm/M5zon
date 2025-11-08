@@ -29,6 +29,8 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
     // State for common batch data
     const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
     const [supplierId, setSupplierId] = useState('');
+    const [selectedProvinceId, setSelectedProvinceId] = useState('');
+    const [selectedAreaId, setSelectedAreaId] = useState('');
     const [destinationClientId, setDestinationClientId] = useState('');
     const [purchaseReason, setPurchaseReason] = useState('');
     const [initialStatus, setInitialStatus] = useState<'in_stock' | 'damaged_on_arrival'>('in_stock');
@@ -39,15 +41,35 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
     const [bundleQuantity, setBundleQuantity] = useState(1);
     const [preparedComponents, setPreparedComponents] = useState<BundleComponentToReceive[]>([]);
     
-    const { suppliers, clients, getClientFullNameById, receiveItems, products, getProductById } = inventory;
+    const { suppliers, clients, provinces, areas, getClientFullNameById, getAreaById, getProvinceById, receiveItems, products, getProductById } = inventory;
     
     const bundleProducts = useMemo(() => products.filter(p => p.productType === 'bundle'), [products]);
 
-    const sortedClients = useMemo(() => {
-        return [...clients].sort((a, b) => 
-            getClientFullNameById(a.id).localeCompare(getClientFullNameById(b.id))
-        );
-    }, [clients, getClientFullNameById]);
+    // تصفية المناطق حسب المحافظة المختارة
+    const filteredAreas = useMemo(() => {
+        if (!selectedProvinceId) return [];
+        return areas.filter(area => area.provinceId === selectedProvinceId);
+    }, [areas, selectedProvinceId]);
+
+    // تصفية العملاء حسب المنطقة المختارة
+    const filteredClients = useMemo(() => {
+        if (!selectedAreaId) return [];
+        return clients.filter(client => client.areaId === selectedAreaId)
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [clients, selectedAreaId]);
+
+    // معالجة تغيير المحافظة
+    const handleProvinceChange = (provinceId: string) => {
+        setSelectedProvinceId(provinceId);
+        setSelectedAreaId('');
+        setDestinationClientId('');
+    };
+
+    // معالجة تغيير المنطقة
+    const handleAreaChange = (areaId: string) => {
+        setSelectedAreaId(areaId);
+        setDestinationClientId('');
+    };
 
     const handleAddItemToList = (item: NewItem) => {
         if (itemsToReceive.some(i => i.serialNumber.trim().toLowerCase() === item.serialNumber.trim().toLowerCase())) {
@@ -65,6 +87,8 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
         setItemsToReceive([]);
         setPurchaseDate(new Date().toISOString().split('T')[0]);
         setSupplierId('');
+        setSelectedProvinceId('');
+        setSelectedAreaId('');
         setDestinationClientId('');
         setPurchaseReason('');
         setInitialStatus('in_stock');
@@ -89,7 +113,7 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
         // Error notifications are handled inside useInventory hook
     };
 
-    const canStartAdding = purchaseDate && destinationClientId && purchaseReason;
+    const canStartAdding = purchaseDate && selectedProvinceId && selectedAreaId && destinationClientId && purchaseReason;
 
     const handlePrepareBundleComponents = () => {
         if (!selectedBundleId) return;
@@ -181,10 +205,44 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="destinationClientId" className="block text-sm font-medium text-slate-700 mb-1">الموقع/العميل المستلم*</label>
-                            <select id="destinationClientId" value={destinationClientId} onChange={e => setDestinationClientId(e.target.value)} required className="w-full">
-                                <option value="" disabled>اختر الموقع المستلم...</option>
-                                {sortedClients.map(c => <option key={c.id} value={c.id}>{getClientFullNameById(c.id)}</option>)}
+                            <label htmlFor="provinceId" className="block text-sm font-medium text-slate-700 mb-1">1. المحافظة*</label>
+                            <select 
+                                id="provinceId" 
+                                value={selectedProvinceId} 
+                                onChange={e => handleProvinceChange(e.target.value)} 
+                                required 
+                                className="w-full"
+                            >
+                                <option value="">-- اختر المحافظة --</option>
+                                {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="areaId" className="block text-sm font-medium text-slate-700 mb-1">2. المنطقة*</label>
+                            <select 
+                                id="areaId" 
+                                value={selectedAreaId} 
+                                onChange={e => handleAreaChange(e.target.value)} 
+                                required 
+                                disabled={!selectedProvinceId}
+                                className="w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            >
+                                <option value="">-- اختر المنطقة --</option>
+                                {filteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="destinationClientId" className="block text-sm font-medium text-slate-700 mb-1">3. العميل المستلم*</label>
+                            <select 
+                                id="destinationClientId" 
+                                value={destinationClientId} 
+                                onChange={e => setDestinationClientId(e.target.value)} 
+                                required 
+                                disabled={!selectedAreaId}
+                                className="w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            >
+                                <option value="">-- اختر العميل --</option>
+                                {filteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
                         <div>

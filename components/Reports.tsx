@@ -52,17 +52,21 @@ const itemStatuses: { [key: string]: string } = {
 
 
 const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
-    const { inventoryItems, getProductById, suppliers, clients, getSupplierById, getClientFullNameById, getItemLocationName } = inventory;
+    const { inventoryItems, getProductById, suppliers, clients, provinces, areas, getSupplierById, getClientFullNameById, getItemLocationName } = inventory;
 
     // State for inventory report
     const [invSelectedCategory, setInvSelectedCategory] = useState<string>('all');
     const [invSelectedStatus, setInvSelectedStatus] = useState<string>('in_stock');
+    const [invSelectedProvinceId, setInvSelectedProvinceId] = useState<string>('all');
+    const [invSelectedAreaId, setInvSelectedAreaId] = useState<string>('all');
     const [invSelectedClient, setInvSelectedClient] = useState<string>('all');
     const [invReportData, setInvReportData] = useState<InventoryItem[] | null>(null);
     const [isInvPrintPreviewOpen, setIsInvPrintPreviewOpen] = useState(false);
 
     // State for receiving report
     const [receiveSelectedSupplier, setReceiveSelectedSupplier] = useState<string>('all');
+    const [receiveSelectedProvinceId, setReceiveSelectedProvinceId] = useState<string>('all');
+    const [receiveSelectedAreaId, setReceiveSelectedAreaId] = useState<string>('all');
     const [receiveSelectedClient, setReceiveSelectedClient] = useState<string>('all');
     const [receiveStartDate, setReceiveStartDate] = useState<string>('');
     const [receiveEndDate, setReceiveEndDate] = useState<string>('');
@@ -74,11 +78,57 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
     const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
     const actionsMenuRef = useRef<HTMLDivElement>(null);
 
-     const sortedClients = useMemo(() => {
-        return [...clients].sort((a, b) => 
-            getClientFullNameById(a.id).localeCompare(getClientFullNameById(b.id))
-        );
-    }, [clients, getClientFullNameById]);
+    // تصفية المناطق حسب المحافظة - تقرير المخزون
+    const invFilteredAreas = useMemo(() => {
+        if (invSelectedProvinceId === 'all') return [];
+        return areas.filter(area => area.provinceId === invSelectedProvinceId);
+    }, [areas, invSelectedProvinceId]);
+
+    // تصفية العملاء حسب المنطقة - تقرير المخزون
+    const invFilteredClients = useMemo(() => {
+        if (invSelectedAreaId === 'all') return [];
+        return clients.filter(client => client.areaId === invSelectedAreaId)
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [clients, invSelectedAreaId]);
+
+    // تصفية المناطق حسب المحافظة - تقرير الاستلام
+    const receiveFilteredAreas = useMemo(() => {
+        if (receiveSelectedProvinceId === 'all') return [];
+        return areas.filter(area => area.provinceId === receiveSelectedProvinceId);
+    }, [areas, receiveSelectedProvinceId]);
+
+    // تصفية العملاء حسب المنطقة - تقرير الاستلام
+    const receiveFilteredClients = useMemo(() => {
+        if (receiveSelectedAreaId === 'all') return [];
+        return clients.filter(client => client.areaId === receiveSelectedAreaId)
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [clients, receiveSelectedAreaId]);
+
+    // معالجة تغيير المحافظة - تقرير المخزون
+    const handleInvProvinceChange = (provinceId: string) => {
+        setInvSelectedProvinceId(provinceId);
+        setInvSelectedAreaId('all');
+        setInvSelectedClient('all');
+    };
+
+    // معالجة تغيير المنطقة - تقرير المخزون
+    const handleInvAreaChange = (areaId: string) => {
+        setInvSelectedAreaId(areaId);
+        setInvSelectedClient('all');
+    };
+
+    // معالجة تغيير المحافظة - تقرير الاستلام
+    const handleReceiveProvinceChange = (provinceId: string) => {
+        setReceiveSelectedProvinceId(provinceId);
+        setReceiveSelectedAreaId('all');
+        setReceiveSelectedClient('all');
+    };
+
+    // معالجة تغيير المنطقة - تقرير الاستلام
+    const handleReceiveAreaChange = (areaId: string) => {
+        setReceiveSelectedAreaId(areaId);
+        setReceiveSelectedClient('all');
+    };
 
     const productCategories = useMemo(() => {
         const categories = new Set(inventory.products.map(p => p.category));
@@ -322,10 +372,34 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                             </select>
                         </div>
                         <div>
-                            <label className="text-sm">الموقع/العميل الحالي</label>
-                            <select value={invSelectedClient} onChange={e => setInvSelectedClient(e.target.value)}>
+                            <label className="text-sm">المحافظة</label>
+                            <select value={invSelectedProvinceId} onChange={e => handleInvProvinceChange(e.target.value)}>
                                 <option value="all">الكل</option>
-                                {sortedClients.map(c => <option key={c.id} value={c.id}>{getClientFullNameById(c.id)}</option>)}
+                                {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-sm">المنطقة</label>
+                            <select 
+                                value={invSelectedAreaId} 
+                                onChange={e => handleInvAreaChange(e.target.value)}
+                                disabled={invSelectedProvinceId === 'all'}
+                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            >
+                                <option value="all">الكل</option>
+                                {invFilteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-sm">العميل</label>
+                            <select 
+                                value={invSelectedClient} 
+                                onChange={e => setInvSelectedClient(e.target.value)}
+                                disabled={invSelectedAreaId === 'all'}
+                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            >
+                                <option value="all">الكل</option>
+                                {invFilteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
                         <Button onClick={handleGenerateInventoryReport} className="w-full">
@@ -391,21 +465,50 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                     <CardTitle>تقرير استلام بضاعة</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end p-4 border rounded-md bg-slate-50">
+                    <div className="space-y-4 p-4 border rounded-md bg-slate-50">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-sm">المورد</label>
+                                <select value={receiveSelectedSupplier} onChange={e => setReceiveSelectedSupplier(e.target.value)}>
+                                    <option value="all">الكل</option>
+                                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                            </div>
+                        </div>
                         <div>
-                            <label className="text-sm">المورد</label>
-                            <select value={receiveSelectedSupplier} onChange={e => setReceiveSelectedSupplier(e.target.value)}>
-                                <option value="all">الكل</option>
-                                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                            </select>
+                            <label className="text-sm font-medium mb-2 block">العميل/الموقع</label>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <select value={receiveSelectedProvinceId} onChange={e => handleReceiveProvinceChange(e.target.value)}>
+                                        <option value="all">كل المحافظات</option>
+                                        {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <select 
+                                        value={receiveSelectedAreaId} 
+                                        onChange={e => handleReceiveAreaChange(e.target.value)}
+                                        disabled={receiveSelectedProvinceId === 'all'}
+                                        className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                    >
+                                        <option value="all">كل المناطق</option>
+                                        {receiveFilteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <select 
+                                        value={receiveSelectedClient} 
+                                        onChange={e => setReceiveSelectedClient(e.target.value)}
+                                        disabled={receiveSelectedAreaId === 'all'}
+                                        className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                    >
+                                        <option value="all">كل العملاء</option>
+                                        {receiveFilteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                         <div>
-                            <label className="text-sm">العميل/الموقع</label>
-                            <select value={receiveSelectedClient} onChange={e => setReceiveSelectedClient(e.target.value)}>
-                                <option value="all">الكل</option>
-                                {sortedClients.map(c => <option key={c.id} value={c.id}>{getClientFullNameById(c.id)}</option>)}
-                            </select>
-                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="text-sm">من تاريخ</label>
                             <input type="date" value={receiveStartDate} onChange={e => setReceiveStartDate(e.target.value)} />
@@ -413,6 +516,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                         <div>
                             <label className="text-sm">إلى تاريخ</label>
                             <input type="date" value={receiveEndDate} onChange={e => setReceiveEndDate(e.target.value)} />
+                        </div>
                         </div>
                         <Button onClick={handleGenerateReceiveReport} className="w-full">
                             <Icons.SearchCheck className="h-4 w-4 ml-2"/>

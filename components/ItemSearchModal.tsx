@@ -25,19 +25,49 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
     initialProductId = '',
     allowedStatuses = ['in_stock'] 
 }) => {
-    const { inventoryItems, products, getProductById, getClientFullNameById } = inventory;
+    const { inventoryItems, products, provinces, areas, clients, getProductById, getClientFullNameById } = inventory;
     const notification = useNotification();
     const [productId, setProductId] = useState(initialProductId);
     const [serialFilter, setSerialFilter] = useState('');
+    const [selectedProvinceId, setSelectedProvinceId] = useState('');
+    const [selectedAreaId, setSelectedAreaId] = useState('');
     const [clientId, setClientId] = useState('');
 
     useEffect(() => {
         if (isOpen) {
             setProductId(initialProductId);
             setSerialFilter('');
+            setSelectedProvinceId('');
+            setSelectedAreaId('');
             setClientId('');
         }
     }, [isOpen, initialProductId]);
+
+    // تصفية المناطق حسب المحافظة المختارة
+    const filteredAreas = useMemo(() => {
+        if (!selectedProvinceId) return [];
+        return areas.filter(area => area.provinceId === selectedProvinceId);
+    }, [areas, selectedProvinceId]);
+
+    // تصفية العملاء حسب المنطقة المختارة
+    const filteredClients = useMemo(() => {
+        if (!selectedAreaId) return [];
+        return clients.filter(client => client.areaId === selectedAreaId)
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [clients, selectedAreaId]);
+
+    // معالجة تغيير المحافظة
+    const handleProvinceChange = (provinceId: string) => {
+        setSelectedProvinceId(provinceId);
+        setSelectedAreaId('');
+        setClientId('');
+    };
+
+    // معالجة تغيير المنطقة
+    const handleAreaChange = (areaId: string) => {
+        setSelectedAreaId(areaId);
+        setClientId('');
+    };
 
     const getWarrantyStatus = (item: InventoryItem) => {
         if (!item.warrantyEndDate) return { text: 'لا يوجد', color: 'text-slate-500', days: null };
@@ -72,30 +102,63 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="بحث متقدم عن قطعة">
             <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-md bg-slate-50">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">فلترة حسب المنتج</label>
-                        <select value={productId} onChange={e => setProductId(e.target.value)} className="w-full">
-                            <option value="">كل المنتجات</option>
-                            {standardProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
+                <div className="space-y-4 p-4 border rounded-md bg-slate-50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">فلترة حسب المنتج</label>
+                            <select value={productId} onChange={e => setProductId(e.target.value)} className="w-full">
+                                <option value="">كل المنتجات</option>
+                                {standardProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">فلترة حسب بار كود القطعة</label>
+                            <input 
+                                type="text" 
+                                value={serialFilter} 
+                                onChange={e => setSerialFilter(convertArabicInput(e.target.value))} 
+                                placeholder="جزء من بار كود القطعة..."
+                                className="w-full"
+                            />
+                        </div>
                     </div>
+                    
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">فلترة حسب بار كود القطعة</label>
-                        <input 
-                            type="text" 
-                            value={serialFilter} 
-                            onChange={e => setSerialFilter(convertArabicInput(e.target.value))} 
-                            placeholder="جزء من بار كود القطعة..."
-                            className="w-full"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">فلترة حسب الموقع الحالي</label>
-                        <select value={clientId} onChange={e => setClientId(e.target.value)} className="w-full">
-                            <option value="">كل المواقع</option>
-                            {inventory.clients.map(c => <option key={c.id} value={c.id}>{getClientFullNameById(c.id)}</option>)}
-                        </select>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">فلترة حسب الموقع الحالي</label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <select 
+                                    value={selectedProvinceId} 
+                                    onChange={e => handleProvinceChange(e.target.value)} 
+                                    className="w-full"
+                                >
+                                    <option value="">كل المحافظات</option>
+                                    {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <select 
+                                    value={selectedAreaId} 
+                                    onChange={e => handleAreaChange(e.target.value)} 
+                                    disabled={!selectedProvinceId}
+                                    className="w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                >
+                                    <option value="">كل المناطق</option>
+                                    {filteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <select 
+                                    value={clientId} 
+                                    onChange={e => setClientId(e.target.value)} 
+                                    disabled={!selectedAreaId}
+                                    className="w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                >
+                                    <option value="">كل العملاء</option>
+                                    {filteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

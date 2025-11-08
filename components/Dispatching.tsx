@@ -24,6 +24,8 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
     const [serialInput, setSerialInput] = useState('');
     const [itemsToDispatch, setItemsToDispatch] = useState<InventoryItem[]>([]);
     const [error, setError] = useState('');
+    const [selectedProvinceId, setSelectedProvinceId] = useState('');
+    const [selectedAreaId, setSelectedAreaId] = useState('');
     const [dispatchClientId, setDispatchClientId] = useState('');
     const [dispatchDate, setDispatchDate] = useState(new Date().toISOString().split('T')[0]);
     const [dispatchReason, setDispatchReason] = useState('');
@@ -31,25 +33,45 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
     const [dispatchReference, setDispatchReference] = useState('');
     const [selectedBundleId, setSelectedBundleId] = useState('');
     const [preallocatedClient, setPreallocatedClient] = useState('');
-    
+
     // Modals state
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [searchModalInitialProductId, setSearchModalInitialProductId] = useState('');
     const [lastDispatch, setLastDispatch] = useState<{ client: any; date: string; reference: string; items: InventoryItem[] } | null>(null);
 
-    const { clients, findItemBySerial, getProductById, products, inventoryItems, getClientFullNameById } = inventory;
+    const { clients, provinces, areas, findItemBySerial, getProductById, products, inventoryItems, getClientFullNameById } = inventory;
     const bundleProducts = useMemo(() => products.filter(p => p.productType === 'bundle'), [products]);
     const existingItemIds = useMemo(() => new Set(itemsToDispatch.map(i => i.id)), [itemsToDispatch]);
 
-    const sortedClients = useMemo(() => {
-        return [...clients].sort((a, b) => 
-            getClientFullNameById(a.id).localeCompare(getClientFullNameById(b.id))
-        );
-    }, [clients, getClientFullNameById]);
+    // تصفية المناطق حسب المحافظة المختارة
+    const filteredAreas = useMemo(() => {
+        if (!selectedProvinceId) return [];
+        return areas.filter(area => area.provinceId === selectedProvinceId);
+    }, [areas, selectedProvinceId]);
+
+    // تصفية العملاء حسب المنطقة المختارة
+    const filteredClients = useMemo(() => {
+        if (!selectedAreaId) return [];
+        return clients.filter(client => client.areaId === selectedAreaId)
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [clients, selectedAreaId]);
+
+    // معالجة تغيير المحافظة
+    const handleProvinceChange = (provinceId: string) => {
+        setSelectedProvinceId(provinceId);
+        setSelectedAreaId('');
+        setDispatchClientId('');
+    };
+
+    // معالجة تغيير المنطقة
+    const handleAreaChange = (areaId: string) => {
+        setSelectedAreaId(areaId);
+        setDispatchClientId('');
+    };
 
     const preallocatedItems = useMemo(() => {
         if (!preallocatedClient) return [];
-        return inventoryItems.filter(item => 
+        return inventoryItems.filter(item =>
             item.status === 'in_stock' &&
             item.destinationClientId === preallocatedClient &&
             !existingItemIds.has(item.id)
@@ -65,13 +87,13 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
         setError('');
         const searchInput = serialInput.trim();
         if (!searchInput) return;
-    
+
         // 1. Check for existing item in dispatch list
         if (itemsToDispatch.some(i => i.serialNumber.toLowerCase() === searchInput.toLowerCase())) {
             setError('هذه القطعة مضافة بالفعل إلى القائمة.');
             return;
         }
-    
+
         // 2. Try to find by unique Serial Number
         const itemBySerial = findItemBySerial(searchInput);
         if (itemBySerial) {
@@ -83,22 +105,22 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
             setSerialInput('');
             return;
         }
-    
+
         // 3. If not found by serial, try to find by SKU
         const productWithSku = products.find(p => p.sku.toLowerCase() === searchInput.toLowerCase());
         if (productWithSku) {
             // Find available items for this product that are not already in the dispatch list
             const availableItems = inventoryItems.filter(
                 item => item.productId === productWithSku.id &&
-                        item.status === 'in_stock' &&
-                        !itemsToDispatch.some(d => d.id === item.id)
+                    item.status === 'in_stock' &&
+                    !itemsToDispatch.some(d => d.id === item.id)
             );
-    
+
             if (availableItems.length === 0) {
                 setError(`لا توجد قطع متاحة في المخزون للمنتج بباركود المنتج: ${searchInput}`);
                 return;
             }
-            
+
             if (availableItems.length === 1) {
                 // If only one is available, add it directly.
                 setItemsToDispatch([...itemsToDispatch, availableItems[0]]);
@@ -106,14 +128,14 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                 notification?.addNotification(`تمت إضافة القطعة الوحيدة المتاحة للمنتج ${productWithSku.name}.`, 'info');
                 return;
             }
-    
+
             // If multiple items are available, open the advanced search modal pre-filtered
             setSearchModalInitialProductId(productWithSku.id);
             setIsSearchOpen(true);
             setSerialInput('');
             return;
         }
-    
+
         // 4. If not found at all
         setError(`لم يتم العثور على قطعة أو منتج بالباركود التالي: ${searchInput}`);
     };
@@ -125,40 +147,40 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
         }
         setItemsToDispatch([...itemsToDispatch, item]);
     };
-    
+
     const handleAddBundleItems = () => {
         if (!selectedBundleId) {
             setError('الرجاء اختيار حزمة أولاً.');
             return;
         }
         setError('');
-    
+
         const bundle = products.find(p => p.id === selectedBundleId);
         if (!bundle || !bundle.components) return;
-    
+
         const itemsToAdd: InventoryItem[] = [];
         let stockError = '';
-    
+
         const currentDispatchIds = new Set(itemsToDispatch.map(i => i.id));
-    
+
         for (const component of bundle.components) {
             const availableItems = inventoryItems.filter(
                 item => item.productId === component.productId &&
-                        item.status === 'in_stock' &&
-                        !currentDispatchIds.has(item.id)
+                    item.status === 'in_stock' &&
+                    !currentDispatchIds.has(item.id)
             );
-    
+
             if (availableItems.length < component.quantity) {
                 const product = getProductById(component.productId);
                 stockError = `لا يوجد مخزون كافٍ من '${product?.name}'. المطلوب: ${component.quantity}, المتاح: ${availableItems.length}`;
                 break;
             }
-    
+
             const itemsForThisComponent = availableItems.slice(0, component.quantity);
             itemsToAdd.push(...itemsForThisComponent);
             itemsForThisComponent.forEach(item => currentDispatchIds.add(item.id));
         }
-    
+
         if (stockError) {
             setError(stockError);
         } else {
@@ -172,9 +194,11 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
     const handleRemoveItem = (itemId: string) => {
         setItemsToDispatch(itemsToDispatch.filter(item => item.id !== itemId));
     };
-    
+
     const resetForm = () => {
         setItemsToDispatch([]);
+        setSelectedProvinceId('');
+        setSelectedAreaId('');
         setDispatchClientId('');
         setDispatchReason('');
         setDispatchNotes('');
@@ -213,7 +237,7 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
             reference: dispatchReference,
             items: itemsToDispatch
         });
-        
+
         resetForm();
     };
 
@@ -234,10 +258,10 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                                         <label htmlFor="serial" className="block text-sm font-medium text-slate-700 mb-1">
                                             باركود المنتج (SKU) / باركود القطعة
                                         </label>
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             id="serial"
-                                            value={serialInput} 
+                                            value={serialInput}
                                             onChange={(e) => setSerialInput(convertArabicInput(e.target.value))}
                                             className="w-full"
                                             placeholder="امسح الباركود هنا..."
@@ -251,7 +275,7 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                                             إضافة
                                         </Button>
                                         <Button type="button" variant="secondary" onClick={() => setIsSearchOpen(true)} className="flex-1">
-                                             <Icons.SearchCheck className="h-5 w-5 ml-2" />
+                                            <Icons.SearchCheck className="h-5 w-5 ml-2" />
                                             بحث متقدم
                                         </Button>
                                     </div>
@@ -268,15 +292,35 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                                         <label htmlFor="preallocated-client" className="block text-sm font-medium text-slate-700 mb-1">
                                             عرض البضاعة المخصصة لـ (عميل / موقع)
                                         </label>
-                                        <select
-                                            id="preallocated-client"
-                                            value={preallocatedClient}
-                                            onChange={(e) => setPreallocatedClient(e.target.value)}
-                                            className="w-full"
-                                        >
-                                            <option value="">-- اختر العميل / الموقع --</option>
-                                            {sortedClients.map(c => <option key={c.id} value={c.id}>{getClientFullNameById(c.id)}</option>)}
-                                        </select>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            <select
+                                                value={selectedProvinceId}
+                                                onChange={(e) => handleProvinceChange(e.target.value)}
+                                                className="w-full"
+                                            >
+                                                <option value="">-- المحافظة --</option>
+                                                {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                            </select>
+                                            <select
+                                                value={selectedAreaId}
+                                                onChange={(e) => handleAreaChange(e.target.value)}
+                                                disabled={!selectedProvinceId}
+                                                className="w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                            >
+                                                <option value="">-- المنطقة --</option>
+                                                {filteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                            </select>
+                                            <select
+                                                id="preallocated-client"
+                                                value={preallocatedClient}
+                                                onChange={(e) => setPreallocatedClient(e.target.value)}
+                                                disabled={!selectedAreaId}
+                                                className="w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                            >
+                                                <option value="">-- العميل --</option>
+                                                {filteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                            </select>
+                                        </div>
                                     </div>
                                     {preallocatedClient && (
                                         <div className="border-t pt-4">
@@ -307,7 +351,7 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                                 </div>
                             </CardContent>
                         </Card>
-                         <Card>
+                        <Card>
                             <CardHeader>
                                 <CardTitle>إضافة حزمة كاملة</CardTitle>
                             </CardHeader>
@@ -332,7 +376,7 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                                 </div>
                             </CardContent>
                         </Card>
-                        {error && 
+                        {error &&
                             <div className="p-4 bg-red-50 border border-red-200 rounded-md text-sm text-danger">
                                 <p className="font-bold">حدث خطأ:</p>
                                 <p>{error}</p>
@@ -341,19 +385,53 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                     </div>
                     {/* Dispatch List Section */}
                     <div className="lg:col-span-2">
-                         <Card>
+                        <Card>
                             <CardHeader>
                                 <CardTitle>قائمة الصرف</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {itemsToDispatch.length > 0 ? (
                                     <div className="space-y-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            <div className="lg:col-span-2">
-                                                <label htmlFor="client" className="block text-sm font-medium text-slate-700 mb-1">صرف إلى (العميل / الموقع)*</label>
-                                                <select id="client" value={dispatchClientId} onChange={e => setDispatchClientId(e.target.value)} required className="w-full">
-                                                    <option value="" disabled>اختر العميل / الموقع...</option>
-                                                    {sortedClients.map(c => <option key={c.id} value={c.id}>{getClientFullNameById(c.id)}</option>)}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                            <div>
+                                                <label htmlFor="provinceId" className="block text-sm font-medium text-slate-700 mb-1">1. المحافظة*</label>
+                                                <select
+                                                    id="provinceId"
+                                                    value={selectedProvinceId}
+                                                    onChange={e => handleProvinceChange(e.target.value)}
+                                                    required
+                                                    className="w-full"
+                                                >
+                                                    <option value="">-- اختر المحافظة --</option>
+                                                    {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label htmlFor="areaId" className="block text-sm font-medium text-slate-700 mb-1">2. المنطقة*</label>
+                                                <select
+                                                    id="areaId"
+                                                    value={selectedAreaId}
+                                                    onChange={e => handleAreaChange(e.target.value)}
+                                                    required
+                                                    disabled={!selectedProvinceId}
+                                                    className="w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                                >
+                                                    <option value="">-- اختر المنطقة --</option>
+                                                    {filteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label htmlFor="client" className="block text-sm font-medium text-slate-700 mb-1">3. العميل*</label>
+                                                <select
+                                                    id="client"
+                                                    value={dispatchClientId}
+                                                    onChange={e => setDispatchClientId(e.target.value)}
+                                                    required
+                                                    disabled={!selectedAreaId}
+                                                    className="w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                                >
+                                                    <option value="">-- اختر العميل --</option>
+                                                    {filteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                                 </select>
                                             </div>
                                             <div>
@@ -408,7 +486,7 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                                                 })}
                                             </tbody>
                                         </table>
-                                         <Button onClick={handleDispatch} className="w-full mt-4">
+                                        <Button onClick={handleDispatch} className="w-full mt-4">
                                             <Icons.Dispatching className="h-5 w-5 ml-2" />
                                             تأكيد الصرف ({itemsToDispatch.length})
                                         </Button>
@@ -423,7 +501,7 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                     </div>
                 </div>
             </div>
-            <ItemSearchModal 
+            <ItemSearchModal
                 isOpen={isSearchOpen}
                 onClose={() => {
                     setIsSearchOpen(false);
@@ -442,7 +520,7 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                         <div className="flex gap-3">
                             <Button variant="secondary" onClick={() => setLastDispatch(null)}>إغلاق</Button>
                             <Button onClick={() => window.print()}>
-                                <Icons.Printer className="h-5 w-5 ml-2"/>
+                                <Icons.Printer className="h-5 w-5 ml-2" />
                                 طباعة سند التسليم
                             </Button>
                         </div>
