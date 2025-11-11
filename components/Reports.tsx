@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
 import { Icons } from './icons';
 import { Modal } from './ui/Modal';
+import { useSettings } from '../contexts/SettingsContext';
 
 // New type for aggregated receiving report rows
 interface AggregatedReceiveRow {
@@ -53,6 +54,8 @@ const itemStatuses: { [key: string]: string } = {
 
 const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
     const { inventoryItems, getProductById, suppliers, clients, provinces, areas, getSupplierById, getClientFullNameById, getItemLocationName } = inventory;
+    const { getSetting } = useSettings();
+    const [companyName, setCompanyName] = useState('نظام إدارة المخزون');
 
     // State for inventory report
     const [invSelectedCategory, setInvSelectedCategory] = useState<string>('all');
@@ -149,6 +152,15 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // جلب اسم الشركة من الإعدادات
+    useEffect(() => {
+        const fetchCompanyName = async () => {
+            const name = await getSetting('company_name', 'نظام إدارة المخزون');
+            setCompanyName(name);
+        };
+        fetchCompanyName();
+    }, [getSetting]);
+
     const handleGenerateInventoryReport = () => {
         let filteredItems = inventoryItems.filter(item => {
             if (invSelectedStatus !== 'all' && item.status !== invSelectedStatus) return false;
@@ -170,7 +182,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
     const handleExportInventoryReport = () => {
         if (!invReportData) return;
 
-        const headers = ['المنتج', 'باركود المنتج', 'باركود القطعة', 'الحالة', 'الموقع الحالي', 'تاريخ الشراء', 'تكلفة الشراء'].join(',');
+        const headers = ['المنتج', 'باركود المنتج', 'باركود القطعة', 'الحالة', 'الموقع الحالي', 'سبب الشراء', 'تاريخ الشراء', 'تكلفة الشراء'].join(',');
         const csvRows = invReportData.map(item => {
             const product = getProductById(item.productId);
             const row = [
@@ -179,6 +191,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                 item.serialNumber,
                 itemStatuses[item.status] || item.status,
                 getItemLocationName(item),
+                item.purchaseReason || '-',
                 new Date(item.purchaseDate).toLocaleDateString('en-CA'),
                 item.costPrice
             ];
@@ -186,7 +199,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         });
         
         const grandTotal = invReportData.reduce((acc, row) => acc + row.costPrice, 0);
-        const summary = `\n\n,,,,,"الإجمالي",${grandTotal}`;
+        const summary = `\n\n,,,,,,"الإجمالي",${grandTotal}`;
         
         const csvContent = [headers, ...csvRows, summary].join('\n');
         const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
@@ -423,9 +436,10 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                 <thead className="text-xs text-slate-700 uppercase bg-slate-100">
                                     <tr>
                                         <th className="px-4 py-3">المنتج</th>
-                                        <th className="px-4 py-3">باركود القطعة</th>
+                                        <th className="px-4 py-3">بار كود القطعة</th>
                                         <th className="px-4 py-3">الحالة</th>
                                         <th className="px-4 py-3">الموقع الحالي</th>
+                                        <th className="px-4 py-3">سبب الشراء</th>
                                         <th className="px-4 py-3">تكلفة الشراء</th>
                                     </tr>
                                 </thead>
@@ -441,6 +455,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                                 <td className="px-4 py-3 font-mono align-top">{item.serialNumber}</td>
                                                 <td className="px-4 py-3 align-top">{itemStatuses[item.status]}</td>
                                                 <td className="px-4 py-3 align-top">{getItemLocationName(item)}</td>
+                                                <td className="px-4 py-3 align-top">{item.purchaseReason || '-'}</td>
                                                 <td className="px-4 py-3 align-top">{item.costPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}</td>
                                             </tr>
                                         );
@@ -448,7 +463,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                 </tbody>
                                 <tfoot>
                                     <tr className="bg-slate-100 font-bold text-base">
-                                        <td colSpan={4} className="px-4 py-3 text-left">الإجمالي</td>
+                                        <td colSpan={5} className="px-4 py-3 text-left">الإجمالي</td>
                                         <td className="px-4 py-3">
                                             {(invReportData.reduce((acc, row) => acc + row.costPrice, 0)).toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}
                                         </td>
@@ -622,6 +637,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                     <div className="flex-grow overflow-y-auto pr-4 -mr-4">
                         <div className="print-area">
                             <div className="mb-8">
+                                <h1 className="text-3xl font-bold text-center mb-2">{companyName}</h1>
                                 <h2 className="text-2xl font-bold text-center">تقرير استلام بضاعة</h2>
                                 <p className="text-center text-slate-500">تاريخ الطباعة: {new Date().toLocaleString('ar-EG')}</p>
                                 <div className="mt-4 text-sm p-4 bg-slate-50 rounded-md border">
@@ -683,7 +699,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                             )}
 
                              <div className="print-footer text-center text-xs text-slate-500 mt-20">
-                                <p>هذا التقرير تم إنشاؤه بواسطة نظام إدارة المخزون.</p>
+                                <p>هذا التقرير تم إنشاؤه بواسطة {companyName}.</p>
                                 <p>صفحة <span className="page-number"></span></p>
                             </div>
                         </div>
@@ -703,6 +719,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                     <div className="flex-grow overflow-y-auto pr-4 -mr-4">
                         <div className="print-area">
                             <div className="mb-8">
+                                <h1 className="text-3xl font-bold text-center mb-2">{companyName}</h1>
                                 <h2 className="text-2xl font-bold text-center">تقرير المخزون الشامل</h2>
                                 <p className="text-center text-slate-500">تاريخ الطباعة: {new Date().toLocaleString('ar-EG')}</p>
                                 <div className="mt-4 text-sm p-4 bg-slate-50 rounded-md border">
@@ -721,6 +738,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                             <th className="px-4 py-3">المنتج</th>
                                             <th className="px-4 py-3">باركود القطعة</th>
                                             <th className="px-4 py-3">الموقع الحالي</th>
+                                            <th className="px-4 py-3">سبب الشراء</th>
                                             <th className="px-4 py-3">تكلفة الشراء</th>
                                         </tr>
                                     </thead>
@@ -732,6 +750,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                                     <td className="px-4 py-3 align-top">{product?.name}</td>
                                                     <td className="px-4 py-3 font-mono align-top">{item.serialNumber}</td>
                                                     <td className="px-4 py-3 align-top">{getItemLocationName(item)}</td>
+                                                    <td className="px-4 py-3 align-top">{item.purchaseReason || '-'}</td>
                                                     <td className="px-4 py-3 align-top">{item.costPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}</td>
                                                 </tr>
                                             );
@@ -739,7 +758,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                     </tbody>
                                      <tfoot>
                                         <tr className="bg-slate-100 font-bold text-base">
-                                            <td colSpan={3} className="px-4 py-3 text-left">الإجمالي</td>
+                                            <td colSpan={4} className="px-4 py-3 text-left">الإجمالي</td>
                                             <td className="px-4 py-3">
                                                 {(invReportData.reduce((acc, row) => acc + row.costPrice, 0)).toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}
                                             </td>
@@ -748,7 +767,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                 </table>
                             ) : <p className="text-center text-slate-500 py-8">لا توجد بيانات لعرضها.</p>}
                             <div className="print-footer text-center text-xs text-slate-500 mt-20">
-                                <p>هذا التقرير تم إنشاؤه بواسطة نظام إدارة المخزون.</p>
+                                <p>هذا التقرير تم إنشاؤه بواسطة {companyName}.</p>
                                 <p>صفحة <span className="page-number"></span></p>
                             </div>
                         </div>

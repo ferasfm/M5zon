@@ -37,6 +37,7 @@ export const useInventory = (): UseInventoryReturn | null => {
                         supplierId: item.supplier_id,
                         destinationClientId: item.destination_client_id,
                         dispatchClientId: item.dispatch_client_id,
+                        purchaseReason: item.purchase_reason,
                         dispatchReason: item.dispatch_reason,
                         dispatchNotes: item.dispatch_notes,
                         dispatchReference: item.dispatch_reference,
@@ -299,8 +300,22 @@ export const useInventory = (): UseInventoryReturn | null => {
         if (data) {
              const parsedData = data.map((item: any) => ({
                 ...item,
-                purchaseDate: new Date(item.purchaseDate),
-                warrantyEndDate: item.warrantyEndDate ? new Date(item.warrantyEndDate) : undefined,
+                purchaseDate: new Date(item.purchase_date),
+                dispatchDate: item.dispatch_date ? new Date(item.dispatch_date) : undefined,
+                scrapDate: item.scrap_date ? new Date(item.scrap_date) : undefined,
+                warrantyEndDate: item.warranty_end_date ? new Date(item.warranty_end_date) : undefined,
+                productId: item.product_id,
+                costPrice: item.cost_price,
+                supplierId: item.supplier_id,
+                destinationClientId: item.destination_client_id,
+                dispatchClientId: item.dispatch_client_id,
+                purchaseReason: item.purchase_reason,
+                dispatchReason: item.dispatch_reason,
+                dispatchNotes: item.dispatch_notes,
+                dispatchReference: item.dispatch_reference,
+                scrapReason: item.scrap_reason,
+                scrapNotes: item.scrap_notes,
+                serialNumber: item.serial_number
             }));
             setInventoryItems(prev => [...prev, ...parsedData]);
             return true;
@@ -324,7 +339,26 @@ export const useInventory = (): UseInventoryReturn | null => {
         } else if (data) {
             setInventoryItems(prev => prev.map(item => {
                 const updatedItem = data.find(d => d.id === item.id);
-                return updatedItem ? {...updatedItem, purchaseDate: new Date(updatedItem.purchaseDate), dispatchDate: new Date(updatedItem.dispatchDate), warrantyEndDate: updatedItem.warrantyEndDate ? new Date(updatedItem.warrantyEndDate) : undefined } : item;
+                if (!updatedItem) return item;
+                return {
+                    ...updatedItem,
+                    purchaseDate: new Date(updatedItem.purchase_date),
+                    dispatchDate: new Date(updatedItem.dispatch_date),
+                    scrapDate: updatedItem.scrap_date ? new Date(updatedItem.scrap_date) : undefined,
+                    warrantyEndDate: updatedItem.warranty_end_date ? new Date(updatedItem.warranty_end_date) : undefined,
+                    productId: updatedItem.product_id,
+                    costPrice: updatedItem.cost_price,
+                    supplierId: updatedItem.supplier_id,
+                    destinationClientId: updatedItem.destination_client_id,
+                    dispatchClientId: updatedItem.dispatch_client_id,
+                    purchaseReason: updatedItem.purchase_reason,
+                    dispatchReason: updatedItem.dispatch_reason,
+                    dispatchNotes: updatedItem.dispatch_notes,
+                    dispatchReference: updatedItem.dispatch_reference,
+                    scrapReason: updatedItem.scrap_reason,
+                    scrapNotes: updatedItem.scrap_notes,
+                    serialNumber: updatedItem.serial_number
+                };
             }));
             notification?.addNotification(`تم صرف ${itemIds.length} قطعة بنجاح.`, 'success');
         }

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { UseInventoryReturn, InventoryItem, Client } from '../types';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface DeliveryNoteProps {
     client: Client | undefined;
@@ -11,6 +12,17 @@ interface DeliveryNoteProps {
 
 const DeliveryNote: React.FC<DeliveryNoteProps> = ({ client, date, reference, items, inventory }) => {
     const { getProductById, getClientFullNameById } = inventory;
+    const { getSetting } = useSettings();
+    const [companyName, setCompanyName] = useState('نظام إدارة المخزون');
+
+    // جلب اسم الشركة من الإعدادات
+    useEffect(() => {
+        const fetchCompanyName = async () => {
+            const name = await getSetting('company_name', 'نظام إدارة المخزون');
+            setCompanyName(name);
+        };
+        fetchCompanyName();
+    }, [getSetting]);
 
     return (
         <div className="p-8 bg-white text-dark font-sans text-sm" dir="rtl">
@@ -20,7 +32,7 @@ const DeliveryNote: React.FC<DeliveryNoteProps> = ({ client, date, reference, it
                     <p>Delivery Note</p>
                 </div>
                 <div className="text-left">
-                    <h2 className="font-bold text-lg">نظام المخزون الاحترافي</h2>
+                    <h2 className="font-bold text-lg">{companyName}</h2>
                     <p className="text-slate-500">تاريخ الطباعة: {new Date().toLocaleString('ar-EG')}</p>
                 </div>
             </header>

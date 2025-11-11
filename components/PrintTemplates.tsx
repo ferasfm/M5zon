@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { UseInventoryReturn, InventoryItem, Supplier } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
 import { Icons } from './icons';
 import { Modal } from './ui/Modal';
 import { useNotification } from '../contexts/NotificationContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 // Data structure for the aggregated report row
 interface FinancialClaimRow {
@@ -38,6 +39,7 @@ const initialColumns: ColumnConfig[] = [
 const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
     const { inventoryItems, getProductById, suppliers, getSupplierById, getClientFullNameById } = inventory;
     const notification = useNotification();
+    const { getSetting } = useSettings();
     
     // Filters
     const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
@@ -54,11 +56,20 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
     // New state for print settings
     const [printSettings, setPrintSettings] = useState({
         title: 'مطالبة مالية',
-        companyName: 'نظام المخزون الاحترافي',
+        companyName: 'نظام المخزون',
         showSupplierContact: true,
         footerText: 'شكراً لتعاملكم معنا.',
     });
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+    // جلب اسم الشركة من الإعدادات
+    useEffect(() => {
+        const fetchCompanyName = async () => {
+            const name = await getSetting('company_name', 'نظام المخزون');
+            setPrintSettings(prev => ({ ...prev, companyName: name }));
+        };
+        fetchCompanyName();
+    }, [getSetting]);
 
     const handleSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;

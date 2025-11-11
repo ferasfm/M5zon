@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Page } from '../types';
 import { Icons } from './icons';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface SidebarProps {
     currentPage: Page;
@@ -8,6 +9,17 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
+    const { getSetting } = useSettings();
+    const [companyName, setCompanyName] = useState('نظام المخزون');
+
+    // جلب اسم الشركة من الإعدادات
+    useEffect(() => {
+        const fetchCompanyName = async () => {
+            const name = await getSetting('company_name', 'نظام المخزون');
+            setCompanyName(name);
+        };
+        fetchCompanyName();
+    }, [getSetting]);
     const navItems = [
         { id: 'dashboard', label: 'لوحة التحكم', icon: <Icons.Dashboard className="h-5 w-5" /> },
         { id: 'products', label: 'المنتجات', icon: <Icons.Products className="h-5 w-5" /> },
@@ -27,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
         <aside className="w-64 bg-white border-l border-slate-200 p-6 flex flex-col">
             <div className="flex items-center gap-3 mb-8">
                 <Icons.Logo className="h-8 w-8 text-primary" />
-                <h1 className="text-xl font-bold text-dark">نظام المخزون</h1>
+                <h1 className="text-xl font-bold text-dark">{companyName}</h1>
             </div>
             <nav className="flex-1 space-y-2">
                 {navItems.map((item, index) => {
