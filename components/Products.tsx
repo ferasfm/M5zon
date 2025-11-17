@@ -7,6 +7,7 @@ import { Icons } from './icons';
 import { Modal } from './ui/Modal';
 import ProductForm from './ProductForm';
 import { convertArabicInput } from '../utils/converters';
+import { formatCurrency } from '../utils/formatters';
 
 const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
     const { products, addProduct, updateProduct, deleteProduct, inventoryItems, getProductById } = inventory;
@@ -146,7 +147,7 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
                                         <td className="px-4 py-3 font-medium">{product.name}</td>
                                         <td className="px-4 py-3 font-mono">{product.sku}</td>
                                         <td className="px-4 py-3">{product.category}</td>
-                                        <td className="px-4 py-3">{product.standardCostPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}</td>
+                                        <td className="px-4 py-3">{formatCurrency(product.standardCostPrice)}</td>
                                         <td className="px-4 py-3 font-bold">{getStockCount(product.id)}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex gap-2">
@@ -193,7 +194,7 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
                             </CardHeader>
                             <CardContent className="flex-grow">
                                 <p className="text-lg font-bold text-primary mb-4">
-                                    {bundle.standardCostPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}
+                                    {formatCurrency(bundle.standardCostPrice)}
                                     <span className="text-xs font-normal text-slate-500"> / تكلفة الحزمة</span>
                                 </p>
                                 <h4 className="text-sm font-semibold text-slate-700 mb-2">المكونات:</h4>

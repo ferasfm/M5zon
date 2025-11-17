@@ -2,6 +2,7 @@ import React from 'react';
 import { InventoryItem, UseInventoryReturn } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Icons } from './icons';
+import { formatCurrency, formatDate } from '../utils/formatters';
 
 const Dashboard: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
     const { 
@@ -68,7 +69,7 @@ const Dashboard: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
                                         </div>
                                         <div className="text-right">
                                            <span className="font-semibold text-danger">
-                                               تنتهي في: {new Date(item.warrantyEndDate!).toLocaleDateString('ar-EG')}
+                                               تنتهي في: {formatDate(item.warrantyEndDate!)}
                                            </span>
                                            <span className="text-xs text-slate-500 block">بحاجة إلى تجديد</span>
                                         </div>
@@ -88,7 +89,7 @@ const Dashboard: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
                         <Icons.Dashboard className="h-4 w-4 text-slate-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{totalStockValue.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}</div>
+                        <div className="text-2xl font-bold">{formatCurrency(totalStockValue)}</div>
                         <p className="text-xs text-slate-500">القيمة الإجمالية للقطع المتوفرة</p>
                     </CardContent>
                 </Card>
@@ -128,7 +129,7 @@ const Dashboard: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
                         <Icons.AlertTriangle className="h-4 w-4 text-danger" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-danger">{scrappedValueLast30Days.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}</div>
+                        <div className="text-2xl font-bold text-danger">{formatCurrency(scrappedValueLast30Days)}</div>
                         <p className="text-xs text-slate-500">إجمالي تكلفة القطع المتلفة</p>
                     </CardContent>
                 </Card>
@@ -171,7 +172,7 @@ const Dashboard: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
                                             <p className="font-medium text-dark">{text}</p>
                                             <p className="text-xs text-slate-500 font-mono">بار كود القطعة: {item.serialNumber}</p>
                                         </div>
-                                        <span className="text-xs text-slate-500">{new Date(date).toLocaleDateString('ar-EG')}</span>
+                                        <span className="text-xs text-slate-500">{formatDate(date)}</span>
                                     </li>
 
                                 );

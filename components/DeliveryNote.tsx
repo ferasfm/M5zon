@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UseInventoryReturn, InventoryItem, Client } from '../types';
 import { useSettings } from '../contexts/SettingsContext';
+import { formatDate, formatDateTime } from '../utils/formatters';
 
 interface DeliveryNoteProps {
     client: Client | undefined;
@@ -33,7 +34,7 @@ const DeliveryNote: React.FC<DeliveryNoteProps> = ({ client, date, reference, it
                 </div>
                 <div className="text-left">
                     <h2 className="font-bold text-lg">{companyName}</h2>
-                    <p className="text-slate-500">تاريخ الطباعة: {new Date().toLocaleString('ar-EG')}</p>
+                    <p className="text-slate-500">تاريخ الطباعة: {formatDateTime(new Date())}</p>
                 </div>
             </header>
 
@@ -44,7 +45,7 @@ const DeliveryNote: React.FC<DeliveryNoteProps> = ({ client, date, reference, it
                 </div>
                  <div className="bg-slate-50 p-4 rounded-md">
                     <h3 className="font-bold text-slate-600 border-b pb-1 mb-2">تفاصيل التسليم</h3>
-                    <p><span className="font-semibold">تاريخ التسليم:</span> {new Date(date).toLocaleDateString('ar-EG')}</p>
+                    <p><span className="font-semibold">تاريخ التسليم:</span> {formatDate(date)}</p>
                     <p><span className="font-semibold">رقم المرجع:</span> {reference || 'لا يوجد'}</p>
                 </div>
             </section>

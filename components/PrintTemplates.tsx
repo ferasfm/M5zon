@@ -6,6 +6,7 @@ import { Icons } from './icons';
 import { Modal } from './ui/Modal';
 import { useNotification } from '../contexts/NotificationContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
 
 // Data structure for the aggregated report row
 interface FinancialClaimRow {
@@ -288,7 +289,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                                 <p className="text-center text-slate-500">{printSettings.companyName}</p>
                                 <div className="grid grid-cols-2 gap-4 mt-6 text-sm border p-4 rounded-md">
                                     <div>
-                                        <p><strong className="font-semibold">تاريخ المطالبة:</strong> {new Date().toLocaleDateString('ar-EG')}</p>
+                                        <p><strong className="font-semibold">تاريخ المطالبة:</strong> {formatDate(new Date())}</p>
                                         <p><strong className="font-semibold">الفترة:</strong> من {startDate || 'البداية'} إلى {endDate || 'النهاية'}</p>
                                     </div>
                                     <div className="text-left">
@@ -322,8 +323,8 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                                                                     <span className="block text-xs text-slate-400 font-mono">باركود: {row.productSku}</span>
                                                                 </div>,
                                                                 quantity: row.quantity,
-                                                                unitPrice: row.unitPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' }),
-                                                                totalPrice: row.totalPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' }),
+                                                                unitPrice: formatCurrency(row.unitPrice),
+                                                                totalPrice: formatCurrency(row.totalPrice),
                                                                 reason: row.purchaseReason,
                                                                 client: row.clientName,
                                                             }[col.key]
@@ -336,7 +337,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                                     <tfoot>
                                         <tr className="bg-slate-100 font-bold text-base">
                                             <td colSpan={Math.max(1, visibleColumns.length - 1)} className="px-4 py-3 text-left">الإجمالي النهائي للمطالبة</td>
-                                            <td className="px-4 py-3">{grandTotal.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}</td>
+                                            <td className="px-4 py-3">{formatCurrency(grandTotal)}</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -408,7 +409,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                                     <p className="text-center text-slate-500">{printSettings.companyName}</p>
                                     <div className="grid grid-cols-2 gap-4 mt-6 text-sm border p-4 rounded-md">
                                         <div>
-                                            <p><strong className="font-semibold">تاريخ المطالبة:</strong> {new Date().toLocaleDateString('ar-EG')}</p>
+                                            <p><strong className="font-semibold">تاريخ المطالبة:</strong> {formatDate(new Date())}</p>
                                             <p><strong className="font-semibold">الفترة:</strong> من {startDate || 'البداية'} إلى {endDate || 'النهاية'}</p>
                                         </div>
                                         <div className="text-left">
@@ -439,8 +440,8 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                                                                         <span className="block text-xs text-slate-400 font-mono">باركود: {row.productSku}</span>
                                                                     </div>,
                                                                     quantity: row.quantity,
-                                                                    unitPrice: row.unitPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' }),
-                                                                    totalPrice: row.totalPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' }),
+                                                                    unitPrice: formatCurrency(row.unitPrice),
+                                                                    totalPrice: formatCurrency(row.totalPrice),
                                                                     reason: row.purchaseReason,
                                                                     client: row.clientName,
                                                                 }[col.key]
@@ -453,7 +454,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                                         <tfoot>
                                             <tr className="bg-slate-100 font-bold text-base">
                                                 <td colSpan={Math.max(1, visibleColumns.length - 1)} className="px-4 py-3 text-left">الإجمالي النهائي للمطالبة</td>
-                                                <td className="px-4 py-3">{grandTotal.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}</td>
+                                                <td className="px-4 py-3">{formatCurrency(grandTotal)}</td>
                                             </tr>
                                         </tfoot>
                                     </table>

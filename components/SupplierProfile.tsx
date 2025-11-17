@@ -6,6 +6,7 @@ import { Icons } from './icons';
 import { Modal } from './ui/Modal';
 import PriceAgreementForm from './PriceAgreementForm';
 import { useNotification } from '../contexts/NotificationContext';
+import { formatCurrency, formatDate } from '../utils/formatters';
 
 
 interface SupplierProfileProps {
@@ -217,8 +218,8 @@ const SupplierProfile: React.FC<SupplierProfileProps> = ({ supplierId, onBack, i
                                         return (
                                             <tr key={agreement.productId} className="border-b">
                                                 <td className="px-4 py-2 font-medium">{product?.name || 'منتج محذوف'}</td>
-                                                <td className="px-4 py-2">{agreement.price.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}</td>
-                                                <td className="px-4 py-2">{new Date(agreement.startDate).toLocaleDateString('ar-EG')}</td>
+                                                <td className="px-4 py-2">{formatCurrency(agreement.price)}</td>
+                                                <td className="px-4 py-2">{formatDate(agreement.startDate)}</td>
                                                 <td className="px-4 py-2">
                                                     <Button variant="ghost" size="sm" className="text-danger" onClick={() => removePriceAgreement(supplier.id, agreement.productId)}>
                                                         <Icons.Trash2 className="h-4 w-4"/>
@@ -256,10 +257,10 @@ const SupplierProfile: React.FC<SupplierProfileProps> = ({ supplierId, onBack, i
                                 const product = getProductById(item.productId);
                                 return (
                                 <tr key={item.id} className="border-b">
-                                    <td className="px-4 py-2">{new Date(item.purchaseDate).toLocaleDateString('ar-EG')}</td>
+                                    <td className="px-4 py-2">{formatDate(item.purchaseDate)}</td>
                                     <td className="px-4 py-2 font-medium">{product?.name}</td>
                                     <td className="px-4 py-2 font-mono">{item.serialNumber}</td>
-                                    <td className="px-4 py-2">{item.costPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}</td>
+                                    <td className="px-4 py-2">{formatCurrency(item.costPrice)}</td>
                                     <td className="px-4 py-2">{item.status}</td>
                                 </tr>
                                 )

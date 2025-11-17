@@ -56,7 +56,7 @@
   },
   "build": {
     "appId": "com.m5zon.inventory",
-    "productName": "إدارة المخزون الاحترافية",
+    "productName": "m5zon",
     "files": [
       "dist/**/*",
       "electron/**/*",
@@ -85,7 +85,7 @@
       "allowElevation": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "إدارة المخزون الاحترافية",
+      "shortcutName": "m5zon",
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
     }

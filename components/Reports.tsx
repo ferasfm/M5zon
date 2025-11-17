@@ -5,6 +5,7 @@ import { Button } from './ui/Button';
 import { Icons } from './icons';
 import { Modal } from './ui/Modal';
 import { useSettings } from '../contexts/SettingsContext';
+import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
 
 // New type for aggregated receiving report rows
 interface AggregatedReceiveRow {
@@ -137,7 +138,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         const categories = new Set(inventory.products.map(p => p.category));
         return Array.from(categories);
     }, [inventory.products]);
-    
+
     const getItemLocationId = (item: InventoryItem): string | undefined => {
         return item.status === 'dispatched' ? item.dispatchClientId : item.destinationClientId;
     }
@@ -167,9 +168,9 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
 
             const product = getProductById(item.productId);
             if (invSelectedCategory !== 'all' && product?.category !== invSelectedCategory) return false;
-            
+
             if (invSelectedClient !== 'all' && getItemLocationId(item) !== invSelectedClient) return false;
-            
+
             return true;
         });
         setInvReportData(filteredItems.sort((a, b) => {
@@ -197,10 +198,10 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             ];
             return row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',');
         });
-        
+
         const grandTotal = invReportData.reduce((acc, row) => acc + row.costPrice, 0);
         const summary = `\n\n,,,,,,"الإجمالي",${grandTotal}`;
-        
+
         const csvContent = [headers, ...csvRows, summary].join('\n');
         const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
@@ -233,9 +234,9 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         const aggregated = Object.values(filteredItems.reduce((acc: Record<string, AggregatedReceiveRow>, item) => {
             const key = `${item.productId}-${item.destinationClientId}-${item.purchaseReason}-${item.costPrice}`;
             if (!acc[key]) {
-                 const product = getProductById(item.productId);
-                 const supplier = item.supplierId ? getSupplierById(item.supplierId) : null;
-                 acc[key] = {
+                const product = getProductById(item.productId);
+                const supplier = item.supplierId ? getSupplierById(item.supplierId) : null;
+                acc[key] = {
                     key: key,
                     productId: item.productId,
                     productName: product?.name || 'N/A',
@@ -249,7 +250,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                     unitPrice: item.costPrice,
                     totalPrice: 0,
                     purchaseDate: item.purchaseDate
-                 };
+                };
             }
             acc[key].quantity += 1;
             acc[key].totalPrice += item.costPrice;
@@ -262,7 +263,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         setReceiveReportData(aggregated);
     };
 
-     const sortedReceiveData = useMemo(() => {
+    const sortedReceiveData = useMemo(() => {
         if (!receiveReportData) return null;
         let sorted = [...receiveReportData];
         if (receiveSortConfig) {
@@ -286,7 +287,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         }
         return sorted;
     }, [receiveReportData, receiveSortConfig]);
-    
+
     const requestReceiveSort = (key: ReceiveReportColumnKey) => {
         let direction: 'asc' | 'desc' = 'asc';
         if (receiveSortConfig && receiveSortConfig.key === key && receiveSortConfig.direction === 'asc') {
@@ -331,7 +332,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         });
 
         const grandTotal = sortedReceiveData.reduce((acc, row) => acc + row.totalPrice, 0);
-        
+
         const summaryHeaders = Array(Math.max(0, visibleCols.length - 2)).fill('').join(',');
         const summary = `\n\n${summaryHeaders},"الإجمالي",${grandTotal}`;
 
@@ -345,7 +346,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         link.click();
         document.body.removeChild(link);
     };
-    
+
     const handlePrint = () => {
         setIsActionsMenuOpen(false);
         setIsPrintPreviewOpen(true);
@@ -364,7 +365,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold text-dark">التقارير</h1>
-            
+
             <Card>
                 <CardHeader>
                     <CardTitle>تقرير المخزون الشامل</CardTitle>
@@ -393,8 +394,8 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                         </div>
                         <div>
                             <label className="text-sm">المنطقة</label>
-                            <select 
-                                value={invSelectedAreaId} 
+                            <select
+                                value={invSelectedAreaId}
                                 onChange={e => handleInvAreaChange(e.target.value)}
                                 disabled={invSelectedProvinceId === 'all'}
                                 className="disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -405,8 +406,8 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                         </div>
                         <div>
                             <label className="text-sm">العميل</label>
-                            <select 
-                                value={invSelectedClient} 
+                            <select
+                                value={invSelectedClient}
                                 onChange={e => setInvSelectedClient(e.target.value)}
                                 disabled={invSelectedAreaId === 'all'}
                                 className="disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -416,7 +417,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                             </select>
                         </div>
                         <Button onClick={handleGenerateInventoryReport} className="w-full">
-                            <Icons.SearchCheck className="h-4 w-4 ml-2"/>
+                            <Icons.SearchCheck className="h-4 w-4 ml-2" />
                             إنشاء التقرير
                         </Button>
                     </div>
@@ -456,7 +457,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                                 <td className="px-4 py-3 align-top">{itemStatuses[item.status]}</td>
                                                 <td className="px-4 py-3 align-top">{getItemLocationName(item)}</td>
                                                 <td className="px-4 py-3 align-top">{item.purchaseReason || '-'}</td>
-                                                <td className="px-4 py-3 align-top">{item.costPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}</td>
+                                                <td className="px-4 py-3 align-top">{formatCurrency(item.costPrice)}</td>
                                             </tr>
                                         );
                                     })}
@@ -465,7 +466,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                     <tr className="bg-slate-100 font-bold text-base">
                                         <td colSpan={5} className="px-4 py-3 text-left">الإجمالي</td>
                                         <td className="px-4 py-3">
-                                            {(invReportData.reduce((acc, row) => acc + row.costPrice, 0)).toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}
+                                            {formatCurrency(invReportData.reduce((acc, row) => acc + row.costPrice, 0))}
                                         </td>
                                     </tr>
                                 </tfoot>
@@ -500,8 +501,8 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                     </select>
                                 </div>
                                 <div>
-                                    <select 
-                                        value={receiveSelectedAreaId} 
+                                    <select
+                                        value={receiveSelectedAreaId}
                                         onChange={e => handleReceiveAreaChange(e.target.value)}
                                         disabled={receiveSelectedProvinceId === 'all'}
                                         className="disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -511,8 +512,8 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                     </select>
                                 </div>
                                 <div>
-                                    <select 
-                                        value={receiveSelectedClient} 
+                                    <select
+                                        value={receiveSelectedClient}
                                         onChange={e => setReceiveSelectedClient(e.target.value)}
                                         disabled={receiveSelectedAreaId === 'all'}
                                         className="disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -524,17 +525,17 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-sm">من تاريخ</label>
-                            <input type="date" value={receiveStartDate} onChange={e => setReceiveStartDate(e.target.value)} />
-                        </div>
-                        <div>
-                            <label className="text-sm">إلى تاريخ</label>
-                            <input type="date" value={receiveEndDate} onChange={e => setReceiveEndDate(e.target.value)} />
-                        </div>
+                            <div>
+                                <label className="text-sm">من تاريخ</label>
+                                <input type="date" value={receiveStartDate} onChange={e => setReceiveStartDate(e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="text-sm">إلى تاريخ</label>
+                                <input type="date" value={receiveEndDate} onChange={e => setReceiveEndDate(e.target.value)} />
+                            </div>
                         </div>
                         <Button onClick={handleGenerateReceiveReport} className="w-full">
-                            <Icons.SearchCheck className="h-4 w-4 ml-2"/>
+                            <Icons.SearchCheck className="h-4 w-4 ml-2" />
                             إنشاء التقرير
                         </Button>
                     </div>
@@ -544,7 +545,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                             <div className="flex justify-end mb-4">
                                 <div className="relative" ref={actionsMenuRef}>
                                     <Button variant="secondary" onClick={() => setIsActionsMenuOpen(prev => !prev)}>
-                                        <Icons.List className="h-4 w-4 ml-2"/>
+                                        <Icons.List className="h-4 w-4 ml-2" />
                                         إجراءات
                                     </Button>
                                     {isActionsMenuOpen && (
@@ -569,26 +570,26 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                 </thead>
                                 <tbody>
                                     {sortedReceiveData && sortedReceiveData.map(row => (
-                                         <tr key={row.key} className="bg-white border-b hover:bg-slate-50">
-                                             {receiveColumns.filter(c => c.visible).map(col => (
+                                        <tr key={row.key} className="bg-white border-b hover:bg-slate-50">
+                                            {receiveColumns.filter(c => c.visible).map(col => (
                                                 <td key={col.key} className="px-4 py-3 align-top">
                                                     {/* FIX: Add type assertion to the object literal to help TypeScript infer the correct type and avoid 'unknown' type errors. */}
                                                     {
                                                         ({
                                                             product: <div><span className="font-semibold">{row.productName}</span><span className="block text-xs font-mono text-slate-400">{row.productSku}</span></div>,
                                                             quantity: row.quantity,
-                                                            cost: row.unitPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' }),
-                                                            totalPrice: row.totalPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' }),
+                                                            cost: formatCurrency(row.unitPrice),
+                                                            totalPrice: formatCurrency(row.totalPrice),
                                                             reason: row.purchaseReason,
                                                             client: row.clientName,
                                                             supplier: row.supplierName,
-                                                            date: new Date(row.purchaseDate).toLocaleDateString('ar-EG'),
+                                                            date: formatDate(row.purchaseDate),
                                                             serial: "N/A"
                                                         } as Record<ReceiveReportColumnKey, ReactNode>)[col.key]
                                                     }
                                                 </td>
-                                             ))}
-                                         </tr>
+                                            ))}
+                                        </tr>
                                     ))}
                                 </tbody>
                                 <tfoot>
@@ -596,7 +597,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                         <td colSpan={Math.max(1, receiveColumns.filter(c => c.visible).length - 1)} className="px-4 py-3 text-left">الإجمالي</td>
                                         <td className="px-4 py-3">
                                             {sortedReceiveData &&
-                                                (sortedReceiveData.reduce((acc, row) => acc + row.totalPrice, 0)).toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })
+                                                formatCurrency(sortedReceiveData.reduce((acc, row) => acc + row.totalPrice, 0))
                                             }
                                         </td>
                                     </tr>
@@ -611,12 +612,12 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                 <div className="space-y-2">
                     <p className="text-sm text-slate-600">اختر الأعمدة التي تريد إظهارها وأعد ترتيبها حسب الأولوية.</p>
                     {receiveColumns.map((col, index) => (
-                         <div key={col.key} className="flex items-center justify-between p-2 hover:bg-slate-100 rounded-md">
+                        <div key={col.key} className="flex items-center justify-between p-2 hover:bg-slate-100 rounded-md">
                             <label className="flex items-center gap-3">
-                                <input 
-                                    type="checkbox" 
-                                    checked={col.visible} 
-                                    onChange={() => setReceiveColumns(prev => prev.map(c => c.key === col.key ? {...c, visible: !c.visible} : c))}
+                                <input
+                                    type="checkbox"
+                                    checked={col.visible}
+                                    onChange={() => setReceiveColumns(prev => prev.map(c => c.key === col.key ? { ...c, visible: !c.visible } : c))}
                                 />
                                 {col.label}
                             </label>
@@ -624,14 +625,14 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                 <button onClick={() => handleReceiveColumnMove(index, 'up')} disabled={index === 0} className="p-1 disabled:opacity-30">▲</button>
                                 <button onClick={() => handleReceiveColumnMove(index, 'down')} disabled={index === receiveColumns.length - 1} className="p-1 disabled:opacity-30">▼</button>
                             </div>
-                         </div>
+                        </div>
                     ))}
                 </div>
-                 <div className="flex justify-end pt-4">
+                <div className="flex justify-end pt-4">
                     <Button onClick={() => setIsReceiveColumnModalOpen(false)}>تم</Button>
                 </div>
             </Modal>
-            
+
             <Modal isOpen={isPrintPreviewOpen} onClose={() => setIsPrintPreviewOpen(false)} title="معاينة طباعة تقرير الاستلام">
                 <div className="flex flex-col h-[75vh]">
                     <div className="flex-grow overflow-y-auto pr-4 -mr-4">
@@ -639,7 +640,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                             <div className="mb-8">
                                 <h1 className="text-3xl font-bold text-center mb-2">{companyName}</h1>
                                 <h2 className="text-2xl font-bold text-center">تقرير استلام بضاعة</h2>
-                                <p className="text-center text-slate-500">تاريخ الطباعة: {new Date().toLocaleString('ar-EG')}</p>
+                                <p className="text-center text-slate-500">تاريخ الطباعة: {formatDateTime(new Date())}</p>
                                 <div className="mt-4 text-sm p-4 bg-slate-50 rounded-md border">
                                     <h3 className="font-bold mb-2">معايير البحث:</h3>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1">
@@ -669,12 +670,12 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                                             ({
                                                                 product: <div><span className="font-semibold">{row.productName}</span><span className="block text-xs font-mono text-slate-400">{row.productSku}</span></div>,
                                                                 quantity: row.quantity,
-                                                                cost: row.unitPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' }),
-                                                                totalPrice: row.totalPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' }),
+                                                                cost: formatCurrency(row.unitPrice),
+                                                                totalPrice: formatCurrency(row.totalPrice),
                                                                 reason: row.purchaseReason,
                                                                 client: row.clientName,
                                                                 supplier: row.supplierName,
-                                                                date: new Date(row.purchaseDate).toLocaleDateString('ar-EG'),
+                                                                date: formatDate(row.purchaseDate),
                                                                 serial: "N/A"
                                                             } as Record<ReceiveReportColumnKey, ReactNode>)[col.key]
                                                         }
@@ -688,7 +689,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                             <td colSpan={Math.max(1, receiveColumns.filter(c => c.visible).length - 1)} className="px-4 py-3 text-left">الإجمالي</td>
                                             <td className="px-4 py-3">
                                                 {
-                                                    (sortedReceiveData.reduce((acc, row) => acc + row.totalPrice, 0)).toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })
+                                                    formatCurrency(sortedReceiveData.reduce((acc, row) => acc + row.totalPrice, 0))
                                                 }
                                             </td>
                                         </tr>
@@ -698,7 +699,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                 <p className="text-center text-slate-500 py-8">لا توجد بيانات لعرضها.</p>
                             )}
 
-                             <div className="print-footer text-center text-xs text-slate-500 mt-20">
+                            <div className="print-footer text-center text-xs text-slate-500 mt-20">
                                 <p>هذا التقرير تم إنشاؤه بواسطة {companyName}.</p>
                                 <p>صفحة <span className="page-number"></span></p>
                             </div>
@@ -715,13 +716,13 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             </Modal>
 
             <Modal isOpen={isInvPrintPreviewOpen} onClose={() => setIsInvPrintPreviewOpen(false)} title="معاينة طباعة تقرير المخزون">
-                 <div className="flex flex-col h-[75vh]">
+                <div className="flex flex-col h-[75vh]">
                     <div className="flex-grow overflow-y-auto pr-4 -mr-4">
                         <div className="print-area">
                             <div className="mb-8">
                                 <h1 className="text-3xl font-bold text-center mb-2">{companyName}</h1>
                                 <h2 className="text-2xl font-bold text-center">تقرير المخزون الشامل</h2>
-                                <p className="text-center text-slate-500">تاريخ الطباعة: {new Date().toLocaleString('ar-EG')}</p>
+                                <p className="text-center text-slate-500">تاريخ الطباعة: {formatDateTime(new Date())}</p>
                                 <div className="mt-4 text-sm p-4 bg-slate-50 rounded-md border">
                                     <h3 className="font-bold mb-2">معايير البحث:</h3>
                                     <div className="grid grid-cols-3 gap-x-4 gap-y-1">
@@ -751,16 +752,16 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                                     <td className="px-4 py-3 font-mono align-top">{item.serialNumber}</td>
                                                     <td className="px-4 py-3 align-top">{getItemLocationName(item)}</td>
                                                     <td className="px-4 py-3 align-top">{item.purchaseReason || '-'}</td>
-                                                    <td className="px-4 py-3 align-top">{item.costPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}</td>
+                                                    <td className="px-4 py-3 align-top">{formatCurrency(item.costPrice)}</td>
                                                 </tr>
                                             );
                                         })}
                                     </tbody>
-                                     <tfoot>
+                                    <tfoot>
                                         <tr className="bg-slate-100 font-bold text-base">
                                             <td colSpan={4} className="px-4 py-3 text-left">الإجمالي</td>
                                             <td className="px-4 py-3">
-                                                {(invReportData.reduce((acc, row) => acc + row.costPrice, 0)).toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}
+                                                {formatCurrency(invReportData.reduce((acc, row) => acc + row.costPrice, 0))}
                                             </td>
                                         </tr>
                                     </tfoot>

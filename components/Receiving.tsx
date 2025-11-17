@@ -5,6 +5,7 @@ import { Button } from './ui/Button';
 import { Icons } from './icons';
 import InventoryItemForm from './InventoryItemForm';
 import { useNotification } from '../contexts/NotificationContext';
+import { formatCurrency } from '../utils/formatters';
 
 const PURCHASE_REASONS = [
     'احتياج جديد',
@@ -433,7 +434,7 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
                                         <tr key={`${item.serialNumber}-${index}`} className="bg-white border-b border-slate-200">
                                             <td className="px-4 py-3 font-medium">{product?.name || '-'}</td>
                                             <td className="px-4 py-3 font-mono">{item.serialNumber}</td>
-                                            <td className="px-4 py-3">{item.costPrice.toLocaleString('ar-SA', { style: 'currency', currency: 'ILS' })}</td>
+                                            <td className="px-4 py-3">{formatCurrency(item.costPrice)}</td>
                                             <td className="px-4 py-3">
                                                 <Button variant="ghost" size="sm" className="text-danger hover:bg-red-50" onClick={() => handleRemoveItem(item.serialNumber)}>
                                                     <Icons.Trash2 className="h-4 w-4" />
