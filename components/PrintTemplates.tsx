@@ -348,13 +348,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                         </div>
                     </CardHeader>
                     <CardContent>
-                        {/* Preview in Card (optional, or just keep the modal) */}
-                        <div className="opacity-50 pointer-events-none select-none overflow-hidden h-64 border rounded relative">
-                            <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/50">
-                                <p className="font-bold text-lg">اضغط على "طباعة" للمعاينة الكاملة</p>
-                            </div>
-                            <ReportContent />
-                        </div>
+                        <ReportContent />
                     </CardContent>
                 </Card>
             )}
