@@ -33,8 +33,9 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
-  // إظهار النافذة عند الجاهزية
+  // إظهار النافذة عند الجاهزية بحجم كامل الشاشة
   mainWindow.once('ready-to-show', () => {
+    mainWindow.maximize();
     mainWindow.show();
   });
 

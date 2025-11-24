@@ -24,10 +24,32 @@ interface AggregatedReceiveRow {
     purchaseDate: Date; // Keep the earliest date for sorting
 }
 
+// New type for aggregated dispatch report rows
+interface AggregatedDispatchRow {
+    key: string;
+    productId: string;
+    productName: string;
+    productSku: string;
+    dispatchClientId: string;
+    clientName: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+    dispatchDate: Date;
+}
+
 type ReceiveReportColumnKey = 'date' | 'product' | 'serial' | 'client' | 'supplier' | 'reason' | 'cost' | 'quantity' | 'totalPrice';
 
 interface ReceiveColumnConfig {
     key: ReceiveReportColumnKey;
+    label: string;
+    visible: boolean;
+}
+
+type DispatchReportColumnKey = 'date' | 'product' | 'client' | 'cost' | 'quantity' | 'totalPrice';
+
+interface DispatchColumnConfig {
+    key: DispatchReportColumnKey;
     label: string;
     visible: boolean;
 }
@@ -42,6 +64,15 @@ const initialReceiveColumns: ReceiveColumnConfig[] = [
     { key: 'supplier', label: 'المورد', visible: true },
     { key: 'date', label: 'تاريخ الاستلام', visible: true },
     { key: 'serial', label: 'بار كود القطعة', visible: false }, // Hidden by default
+];
+
+const initialDispatchColumns: DispatchColumnConfig[] = [
+    { key: 'product', label: 'المنتج', visible: true },
+    { key: 'quantity', label: 'الكمية', visible: true },
+    { key: 'cost', label: 'سعر مفرد', visible: true },
+    { key: 'totalPrice', label: 'سعر مجموع', visible: true },
+    { key: 'client', label: 'العميل / الموقع', visible: true },
+    { key: 'date', label: 'تاريخ الصرف', visible: true },
 ];
 
 const itemStatuses: { [key: string]: string } = {
@@ -82,6 +113,20 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
     const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
     const actionsMenuRef = useRef<HTMLDivElement>(null);
 
+    // State for dispatch report
+    const [dispatchSelectedProvinceId, setDispatchSelectedProvinceId] = useState<string>('all');
+    const [dispatchSelectedAreaId, setDispatchSelectedAreaId] = useState<string>('all');
+    const [dispatchSelectedClient, setDispatchSelectedClient] = useState<string>('all');
+    const [dispatchStartDate, setDispatchStartDate] = useState<string>('');
+    const [dispatchEndDate, setDispatchEndDate] = useState<string>('');
+    const [dispatchReportData, setDispatchReportData] = useState<AggregatedDispatchRow[] | null>(null);
+    const [dispatchColumns, setDispatchColumns] = useState<DispatchColumnConfig[]>(initialDispatchColumns);
+    const [isDispatchColumnModalOpen, setIsDispatchColumnModalOpen] = useState(false);
+    const [dispatchSortConfig, setDispatchSortConfig] = useState<{ key: DispatchReportColumnKey, direction: 'asc' | 'desc' } | null>(null);
+    const [isDispatchActionsMenuOpen, setIsDispatchActionsMenuOpen] = useState(false);
+    const [isDispatchPrintPreviewOpen, setIsDispatchPrintPreviewOpen] = useState(false);
+    const dispatchActionsMenuRef = useRef<HTMLDivElement>(null);
+
     // تصفية المناطق حسب المحافظة - تقرير المخزون
     const invFilteredAreas = useMemo(() => {
         if (invSelectedProvinceId === 'all') return [];
@@ -107,6 +152,19 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         return clients.filter(client => client.areaId === receiveSelectedAreaId)
             .sort((a, b) => a.name.localeCompare(b.name));
     }, [clients, receiveSelectedAreaId]);
+
+    // تصفية المناطق حسب المحافظة - تقرير الصرف
+    const dispatchFilteredAreas = useMemo(() => {
+        if (dispatchSelectedProvinceId === 'all') return [];
+        return areas.filter(area => area.provinceId === dispatchSelectedProvinceId);
+    }, [areas, dispatchSelectedProvinceId]);
+
+    // تصفية العملاء حسب المنطقة - تقرير الصرف
+    const dispatchFilteredClients = useMemo(() => {
+        if (dispatchSelectedAreaId === 'all') return [];
+        return clients.filter(client => client.areaId === dispatchSelectedAreaId)
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [clients, dispatchSelectedAreaId]);
 
     // معالجة تغيير المحافظة - تقرير المخزون
     const handleInvProvinceChange = (provinceId: string) => {
@@ -134,6 +192,19 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         setReceiveSelectedClient('all');
     };
 
+    // معالجة تغيير المحافظة - تقرير الصرف
+    const handleDispatchProvinceChange = (provinceId: string) => {
+        setDispatchSelectedProvinceId(provinceId);
+        setDispatchSelectedAreaId('all');
+        setDispatchSelectedClient('all');
+    };
+
+    // معالجة تغيير المنطقة - تقرير الصرف
+    const handleDispatchAreaChange = (areaId: string) => {
+        setDispatchSelectedAreaId(areaId);
+        setDispatchSelectedClient('all');
+    };
+
     const productCategories = useMemo(() => {
         const categories = new Set(inventory.products.map(p => p.category));
         return Array.from(categories);
@@ -147,6 +218,9 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         const handleClickOutside = (event: MouseEvent) => {
             if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
                 setIsActionsMenuOpen(false);
+            }
+            if (dispatchActionsMenuRef.current && !dispatchActionsMenuRef.current.contains(event.target as Node)) {
+                setIsDispatchActionsMenuOpen(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -263,6 +337,51 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         setReceiveReportData(aggregated);
     };
 
+    const handleGenerateDispatchReport = () => {
+        let filteredItems = inventoryItems.filter(item => {
+            if (item.status !== 'dispatched') return false;
+            if (!item.dispatchDate) return false;
+            const dispatchDate = new Date(item.dispatchDate);
+
+            if (dispatchStartDate && dispatchDate < new Date(dispatchStartDate)) return false;
+            if (dispatchEndDate) {
+                const end = new Date(dispatchEndDate);
+                end.setHours(23, 59, 59, 999);
+                if (dispatchDate > end) return false;
+            }
+            if (dispatchSelectedClient !== 'all' && item.dispatchClientId !== dispatchSelectedClient) return false;
+
+            return true;
+        });
+
+        const aggregated = Object.values(filteredItems.reduce((acc: Record<string, AggregatedDispatchRow>, item) => {
+            const key = `${item.productId}-${item.dispatchClientId}-${item.costPrice}`;
+            if (!acc[key]) {
+                const product = getProductById(item.productId);
+                acc[key] = {
+                    key: key,
+                    productId: item.productId,
+                    productName: product?.name || 'N/A',
+                    productSku: product?.sku || 'N/A',
+                    dispatchClientId: item.dispatchClientId!,
+                    clientName: getClientFullNameById(item.dispatchClientId!),
+                    quantity: 0,
+                    unitPrice: item.costPrice,
+                    totalPrice: 0,
+                    dispatchDate: item.dispatchDate
+                };
+            }
+            acc[key].quantity += 1;
+            acc[key].totalPrice += item.costPrice;
+            if (item.dispatchDate < acc[key].dispatchDate) {
+                acc[key].dispatchDate = item.dispatchDate;
+            }
+            return acc;
+        }, {}));
+
+        setDispatchReportData(aggregated);
+    };
+
     const sortedReceiveData = useMemo(() => {
         if (!receiveReportData) return null;
         let sorted = [...receiveReportData];
@@ -296,12 +415,51 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         setReceiveSortConfig({ key, direction });
     };
 
+    const sortedDispatchData = useMemo(() => {
+        if (!dispatchReportData) return null;
+        let sorted = [...dispatchReportData];
+        if (dispatchSortConfig) {
+            sorted.sort((a, b) => {
+                let aValue: any, bValue: any;
+                switch (dispatchSortConfig.key) {
+                    case 'product': aValue = a.productName; bValue = b.productName; break;
+                    case 'quantity': aValue = a.quantity; bValue = b.quantity; break;
+                    case 'cost': aValue = a.unitPrice; bValue = b.unitPrice; break;
+                    case 'totalPrice': aValue = a.totalPrice; bValue = b.totalPrice; break;
+                    case 'client': aValue = a.clientName; bValue = b.clientName; break;
+                    case 'date': aValue = a.dispatchDate; bValue = b.dispatchDate; break;
+                    default: return 0;
+                }
+                if (aValue < bValue) return dispatchSortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return dispatchSortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sorted;
+    }, [dispatchReportData, dispatchSortConfig]);
+
+    const requestDispatchSort = (key: DispatchReportColumnKey) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (dispatchSortConfig && dispatchSortConfig.key === key && dispatchSortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setDispatchSortConfig({ key, direction });
+    };
+
     const handleReceiveColumnMove = (index: number, direction: 'up' | 'down') => {
         const newColumns = [...receiveColumns];
         const targetIndex = direction === 'up' ? index - 1 : index + 1;
         if (targetIndex < 0 || targetIndex >= newColumns.length) return;
         [newColumns[index], newColumns[targetIndex]] = [newColumns[targetIndex], newColumns[index]];
         setReceiveColumns(newColumns);
+    };
+
+    const handleDispatchColumnMove = (index: number, direction: 'up' | 'down') => {
+        const newColumns = [...dispatchColumns];
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= newColumns.length) return;
+        [newColumns[index], newColumns[targetIndex]] = [newColumns[targetIndex], newColumns[index]];
+        setDispatchColumns(newColumns);
     };
 
     const handleExportReceiveReport = () => {
@@ -347,6 +505,46 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         document.body.removeChild(link);
     };
 
+    const handleExportDispatchReport = () => {
+        if (!sortedDispatchData) return;
+
+        const visibleCols = dispatchColumns.filter(c => c.visible);
+        const headers = visibleCols.map(c => c.label).join(',');
+
+        const csvRows = sortedDispatchData.map(row => {
+            return visibleCols.map(col => {
+                let value;
+                switch (col.key) {
+                    case 'product': value = row.productName; break;
+                    case 'quantity': value = row.quantity; break;
+                    case 'cost': value = row.unitPrice; break;
+                    case 'totalPrice': value = row.totalPrice; break;
+                    case 'client': value = row.clientName; break;
+                    case 'date': value = new Date(row.dispatchDate).toLocaleDateString('en-CA'); break;
+                    default: value = '';
+                }
+                const strValue = String(value);
+                if (strValue.includes(',')) return `"${strValue}"`;
+                return strValue;
+            }).join(',');
+        });
+
+        const grandTotal = sortedDispatchData.reduce((acc, row) => acc + row.totalPrice, 0);
+
+        const summaryHeaders = Array(Math.max(0, visibleCols.length - 2)).fill('').join(',');
+        const summary = `\n\n${summaryHeaders},"الإجمالي",${grandTotal}`;
+
+        const csvContent = [headers, ...csvRows, summary].join('\n');
+        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `dispatch_report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const handlePrint = () => {
         setIsActionsMenuOpen(false);
         setIsPrintPreviewOpen(true);
@@ -356,6 +554,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         const afterPrintHandler = () => {
             setIsPrintPreviewOpen(false);
             setIsInvPrintPreviewOpen(false);
+            setIsDispatchPrintPreviewOpen(false);
             window.removeEventListener('afterprint', afterPrintHandler);
         };
         window.addEventListener('afterprint', afterPrintHandler);
@@ -608,6 +807,125 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                 </CardContent>
             </Card>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle>تقرير صرف بضاعة</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4 p-4 border rounded-md bg-slate-50">
+                        <div>
+                            <label className="text-sm font-medium mb-2 block">العميل/الموقع</label>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <select value={dispatchSelectedProvinceId} onChange={e => handleDispatchProvinceChange(e.target.value)}>
+                                        <option value="all">كل المحافظات</option>
+                                        {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <select
+                                        value={dispatchSelectedAreaId}
+                                        onChange={e => handleDispatchAreaChange(e.target.value)}
+                                        disabled={dispatchSelectedProvinceId === 'all'}
+                                        className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                    >
+                                        <option value="all">كل المناطق</option>
+                                        {dispatchFilteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <select
+                                        value={dispatchSelectedClient}
+                                        onChange={e => setDispatchSelectedClient(e.target.value)}
+                                        disabled={dispatchSelectedAreaId === 'all'}
+                                        className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                    >
+                                        <option value="all">كل العملاء</option>
+                                        {dispatchFilteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-sm">من تاريخ</label>
+                                <input type="date" value={dispatchStartDate} onChange={e => setDispatchStartDate(e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="text-sm">إلى تاريخ</label>
+                                <input type="date" value={dispatchEndDate} onChange={e => setDispatchEndDate(e.target.value)} />
+                            </div>
+                        </div>
+                        <Button onClick={handleGenerateDispatchReport} className="w-full">
+                            <Icons.SearchCheck className="h-4 w-4 ml-2" />
+                            إنشاء التقرير
+                        </Button>
+                    </div>
+
+                    {dispatchReportData && (
+                        <div className="mt-6">
+                            <div className="flex justify-end mb-4">
+                                <div className="relative" ref={dispatchActionsMenuRef}>
+                                    <Button variant="secondary" onClick={() => setIsDispatchActionsMenuOpen(prev => !prev)}>
+                                        <Icons.List className="h-4 w-4 ml-2" />
+                                        إجراءات
+                                    </Button>
+                                    {isDispatchActionsMenuOpen && (
+                                        <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-10">
+                                            <button onClick={() => { setIsDispatchColumnModalOpen(true); setIsDispatchActionsMenuOpen(false); }} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">تخصيص الأعمدة</button>
+                                            <button onClick={() => { setIsDispatchPrintPreviewOpen(true); setIsDispatchActionsMenuOpen(false); }} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">طباعة</button>
+                                            <button onClick={handleExportDispatchReport} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">تصدير CSV</button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <table className="w-full text-sm text-right">
+                                <thead className="text-xs text-slate-700 uppercase bg-slate-100">
+                                    <tr>
+                                        {dispatchColumns.filter(c => c.visible).map(col => (
+                                            <th key={col.key} className="px-4 py-3 cursor-pointer" onClick={() => requestDispatchSort(col.key)}>
+                                                {col.label}
+                                                {dispatchSortConfig?.key === col.key && (dispatchSortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sortedDispatchData && sortedDispatchData.map(row => (
+                                        <tr key={row.key} className="bg-white border-b hover:bg-slate-50">
+                                            {dispatchColumns.filter(c => c.visible).map(col => (
+                                                <td key={col.key} className="px-4 py-3 align-top">
+                                                    {
+                                                        ({
+                                                            product: <div><span className="font-semibold">{row.productName}</span><span className="block text-xs font-mono text-slate-400">{row.productSku}</span></div>,
+                                                            quantity: row.quantity,
+                                                            cost: formatCurrency(row.unitPrice),
+                                                            totalPrice: formatCurrency(row.totalPrice),
+                                                            client: row.clientName,
+                                                            date: formatDate(row.dispatchDate),
+                                                        } as Record<DispatchReportColumnKey, ReactNode>)[col.key]
+                                                    }
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="bg-slate-100 font-bold text-base">
+                                        <td colSpan={Math.max(1, dispatchColumns.filter(c => c.visible).length - 1)} className="px-4 py-3 text-left">الإجمالي</td>
+                                        <td className="px-4 py-3">
+                                            {sortedDispatchData &&
+                                                formatCurrency(sortedDispatchData.reduce((acc, row) => acc + row.totalPrice, 0))
+                                            }
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
             <Modal isOpen={isReceiveColumnModalOpen} onClose={() => setIsReceiveColumnModalOpen(false)} title="تخصيص أعمدة التقرير">
                 <div className="space-y-2">
                     <p className="text-sm text-slate-600">اختر الأعمدة التي تريد إظهارها وأعد ترتيبها حسب الأولوية.</p>
@@ -707,6 +1025,109 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                     </div>
                     <div className="flex-shrink-0 flex justify-end gap-2 mt-6 pt-4 border-t no-print">
                         <Button variant="secondary" onClick={() => setIsPrintPreviewOpen(false)}>إغلاق</Button>
+                        <Button onClick={handlePrintAction}>
+                            <Icons.Printer className="h-4 w-4 ml-2" />
+                            طباعة الآن
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal isOpen={isDispatchColumnModalOpen} onClose={() => setIsDispatchColumnModalOpen(false)} title="تخصيص أعمدة تقرير الصرف">
+                <div className="space-y-2">
+                    <p className="text-sm text-slate-600">اختر الأعمدة التي تريد إظهارها وأعد ترتيبها حسب الأولوية.</p>
+                    {dispatchColumns.map((col, index) => (
+                        <div key={col.key} className="flex items-center justify-between p-2 hover:bg-slate-100 rounded-md">
+                            <label className="flex items-center gap-3">
+                                <input
+                                    type="checkbox"
+                                    checked={col.visible}
+                                    onChange={() => setDispatchColumns(prev => prev.map(c => c.key === col.key ? { ...c, visible: !c.visible } : c))}
+                                />
+                                {col.label}
+                            </label>
+                            <div className="flex gap-1">
+                                <button onClick={() => handleDispatchColumnMove(index, 'up')} disabled={index === 0} className="p-1 disabled:opacity-30">▲</button>
+                                <button onClick={() => handleDispatchColumnMove(index, 'down')} disabled={index === dispatchColumns.length - 1} className="p-1 disabled:opacity-30">▼</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <div className="flex justify-end pt-4">
+                    <Button onClick={() => setIsDispatchColumnModalOpen(false)}>تم</Button>
+                </div>
+            </Modal>
+
+            <Modal isOpen={isDispatchPrintPreviewOpen} onClose={() => setIsDispatchPrintPreviewOpen(false)} title="معاينة طباعة تقرير الصرف">
+                <div className="flex flex-col h-[75vh]">
+                    <div className="flex-grow overflow-y-auto pr-4 -mr-4">
+                        <div className="print-area">
+                            <div className="mb-8">
+                                <h1 className="text-3xl font-bold text-center mb-2">{companyName}</h1>
+                                <h2 className="text-2xl font-bold text-center">تقرير صرف بضاعة</h2>
+                                <p className="text-center text-slate-500">تاريخ الطباعة: {formatDateTime(new Date())}</p>
+                                <div className="mt-4 text-sm p-4 bg-slate-50 rounded-md border">
+                                    <h3 className="font-bold mb-2">معايير البحث:</h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
+                                        <div><strong>العميل:</strong> {dispatchSelectedClient === 'all' ? 'الكل' : getClientFullNameById(dispatchSelectedClient)}</div>
+                                        <div><strong>من تاريخ:</strong> {dispatchStartDate || 'البداية'}</div>
+                                        <div><strong>إلى تاريخ:</strong> {dispatchEndDate || 'النهاية'}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {sortedDispatchData && sortedDispatchData.length > 0 ? (
+                                <table className="w-full text-sm text-right">
+                                    <thead className="text-xs text-slate-700 uppercase bg-slate-100">
+                                        <tr>
+                                            {dispatchColumns.filter(c => c.visible).map(col => (
+                                                <th key={col.key} className="px-4 py-3">{col.label}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sortedDispatchData.map(row => (
+                                            <tr key={row.key} className="bg-white border-b">
+                                                {dispatchColumns.filter(c => c.visible).map(col => (
+                                                    <td key={col.key} className="px-4 py-3 align-top">
+                                                        {
+                                                            ({
+                                                                product: <div><span className="font-semibold">{row.productName}</span><span className="block text-xs font-mono text-slate-400">{row.productSku}</span></div>,
+                                                                quantity: row.quantity,
+                                                                cost: formatCurrency(row.unitPrice),
+                                                                totalPrice: formatCurrency(row.totalPrice),
+                                                                client: row.clientName,
+                                                                date: formatDate(row.dispatchDate),
+                                                            } as Record<DispatchReportColumnKey, ReactNode>)[col.key]
+                                                        }
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr className="bg-slate-100 font-bold text-base">
+                                            <td colSpan={Math.max(1, dispatchColumns.filter(c => c.visible).length - 1)} className="px-4 py-3 text-left">الإجمالي</td>
+                                            <td className="px-4 py-3">
+                                                {
+                                                    formatCurrency(sortedDispatchData.reduce((acc, row) => acc + row.totalPrice, 0))
+                                                }
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            ) : (
+                                <p className="text-center text-slate-500 py-8">لا توجد بيانات لعرضها.</p>
+                            )}
+
+                            <div className="print-footer text-center text-xs text-slate-500 mt-20">
+                                <p>هذا التقرير تم إنشاؤه بواسطة {companyName}.</p>
+                                <p>صفحة <span className="page-number"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex-shrink-0 flex justify-end gap-2 mt-6 pt-4 border-t no-print">
+                        <Button variant="secondary" onClick={() => setIsDispatchPrintPreviewOpen(false)}>إغلاق</Button>
                         <Button onClick={handlePrintAction}>
                             <Icons.Printer className="h-4 w-4 ml-2" />
                             طباعة الآن
