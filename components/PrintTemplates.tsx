@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { UseInventoryReturn, InventoryItem, Supplier } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
@@ -10,14 +11,14 @@ import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters'
 
 // Data structure for the aggregated report row
 interface FinancialClaimRow {
-  productId: string;
-  productName: string;
-  productSku: string;
-  purchaseReason: string;
-  clientName: string;
-  quantity: number;
-  unitPrice: number; // average cost
-  totalPrice: number;
+    productId: string;
+    productName: string;
+    productSku: string;
+    purchaseReason: string;
+    clientName: string;
+    quantity: number;
+    unitPrice: number; // average cost
+    totalPrice: number;
 }
 
 type ColumnKey = 'product' | 'quantity' | 'unitPrice' | 'totalPrice' | 'reason' | 'client';
@@ -41,7 +42,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
     const { inventoryItems, getProductById, suppliers, getSupplierById, getClientFullNameById } = inventory;
     const notification = useNotification();
     const { getSetting } = useSettings();
-    
+
     // Filters
     const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
     const [startDate, setStartDate] = useState('');
@@ -53,7 +54,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
     const [sortConfig, setSortConfig] = useState<{ key: ColumnKey, direction: 'asc' | 'desc' } | null>(null);
     const [isColumnsModalOpen, setIsColumnsModalOpen] = useState(false);
     const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
-    
+
     // New state for print settings
     const [printSettings, setPrintSettings] = useState({
         title: 'مطالبة مالية',
@@ -135,7 +136,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
         window.addEventListener('afterprint', afterPrintHandler);
         window.print();
     };
-    
+
     const sortedData = useMemo(() => {
         if (!reportData) return null;
 
@@ -143,7 +144,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
         if (sortConfig) {
             sorted.sort((a, b) => {
                 let aValue: any, bValue: any;
-                switch(sortConfig.key) {
+                switch (sortConfig.key) {
                     case 'product': aValue = a.productName; bValue = b.productName; break;
                     case 'quantity': aValue = a.quantity; bValue = b.quantity; break;
                     case 'unitPrice': aValue = a.unitPrice; bValue = b.unitPrice; break;
@@ -152,7 +153,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                     case 'client': aValue = a.clientName; bValue = b.clientName; break;
                     default: aValue = ''; bValue = '';
                 }
-                
+
                 if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
@@ -188,7 +189,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
         if (!sortedData || !selectedSupplierId) return;
         const supplier = getSupplierById(selectedSupplierId);
         const headers = visibleColumns.map(c => escapeCsvField(c.label)).join(',');
-        
+
         const rows = sortedData.map(row => {
             return visibleColumns.map(col => {
                 let value;
@@ -219,7 +220,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
         });
 
         const grandTotal = sortedData.reduce((acc, row) => acc + row.totalPrice, 0);
-        
+
         const summaryHeaders = Array(Math.max(0, visibleColumns.length - 2)).fill('').join(',');
         const summary = `\n\n${summaryHeaders},${escapeCsvField('الإجمالي')},${escapeCsvField(grandTotal)}`;
 
@@ -238,6 +239,71 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
     const selectedSupplier = getSupplierById(selectedSupplierId);
     const grandTotal = sortedData ? sortedData.reduce((acc, group) => acc + group.totalPrice, 0) : 0;
 
+    // Helper component for the report content to avoid duplication
+    const ReportContent = () => (
+        <div className="print-content" dir="rtl">
+            <div className="print-header mb-8">
+                <h2 className="text-3xl font-bold text-center">{printSettings.title}</h2>
+                <p className="text-center text-slate-500">{printSettings.companyName}</p>
+                <div className="grid grid-cols-2 gap-4 mt-6 text-sm border p-4 rounded-md">
+                    <div>
+                        <p><strong className="font-semibold">تاريخ المطالبة:</strong> {formatDate(new Date())}</p>
+                        <p><strong className="font-semibold">الفترة:</strong> من {startDate || 'البداية'} إلى {endDate || 'النهاية'}</p>
+                    </div>
+                    <div className="text-left">
+                        <p><strong className="font-semibold">إلى السيد/ة:</strong> {selectedSupplier?.name}</p>
+                        {printSettings.showSupplierContact && <p><strong className="font-semibold">هاتف:</strong> {selectedSupplier?.phone || 'غير متوفر'}</p>}
+                    </div>
+                </div>
+            </div>
+
+            {sortedData && sortedData.length > 0 ? (
+                <table className="w-full text-sm text-right">
+                    <thead className="text-xs text-slate-700 uppercase bg-slate-100">
+                        <tr>
+                            {visibleColumns.map(col => (
+                                <th key={col.key} className="px-4 py-3 border">{col.label}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sortedData.map(row => (
+                            <tr key={`${row.productId}-${row.purchaseReason}-${row.clientName}`} className="bg-white border-b">
+                                {visibleColumns.map(col => (
+                                    <td key={col.key} className="px-4 py-3 border">
+                                        {
+                                            {
+                                                product: <div>
+                                                    <span className="font-semibold">{row.productName}</span>
+                                                    <span className="block text-xs text-slate-400 font-mono">باركود: {row.productSku}</span>
+                                                </div>,
+                                                quantity: row.quantity,
+                                                unitPrice: formatCurrency(row.unitPrice),
+                                                totalPrice: formatCurrency(row.totalPrice),
+                                                reason: row.purchaseReason,
+                                                client: row.clientName,
+                                            }[col.key]
+                                        }
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                        {/* Total Row - Placed at the end of tbody to ensure it appears after all items */}
+                        <tr className="bg-slate-100 font-bold text-base">
+                            <td colSpan={Math.max(1, visibleColumns.length - 1)} className="px-4 py-3 text-left border">الإجمالي النهائي للمطالبة</td>
+                            <td className="px-4 py-3 border">{formatCurrency(grandTotal)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            ) : (
+                <p className="text-center text-slate-500 py-8">لا توجد بيانات تطابق الفلاتر المحددة.</p>
+            )}
+            <div className="print-footer text-center text-xs text-slate-500 mt-20">
+                <p>{printSettings.footerText}</p>
+            </div>
+        </div>
+    );
+
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold text-dark">إنشاء مطالبة مالية للموردين</h1>
@@ -248,18 +314,18 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                         <div>
+                        <div>
                             <label className="block text-sm font-medium">المورد*</label>
                             <select value={selectedSupplierId} onChange={e => setSelectedSupplierId(e.target.value)} required>
                                 <option value="" disabled>-- اختر موردًا --</option>
                                 {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                         </div>
-                         <div>
+                        <div>
                             <label className="block text-sm font-medium">من تاريخ</label>
                             <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
                         </div>
-                         <div>
+                        <div>
                             <label className="block text-sm font-medium">إلى تاريخ</label>
                             <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
                         </div>
@@ -282,68 +348,12 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div>
-                            {/* Print Header */}
-                            <div className="mb-8 hidden sm:block">
-                                <h2 className="text-3xl font-bold text-center">{printSettings.title}</h2>
-                                <p className="text-center text-slate-500">{printSettings.companyName}</p>
-                                <div className="grid grid-cols-2 gap-4 mt-6 text-sm border p-4 rounded-md">
-                                    <div>
-                                        <p><strong className="font-semibold">تاريخ المطالبة:</strong> {formatDate(new Date())}</p>
-                                        <p><strong className="font-semibold">الفترة:</strong> من {startDate || 'البداية'} إلى {endDate || 'النهاية'}</p>
-                                    </div>
-                                    <div className="text-left">
-                                        <p><strong className="font-semibold">إلى السيد/ة:</strong> {selectedSupplier?.name}</p>
-                                        {printSettings.showSupplierContact && <p><strong className="font-semibold">هاتف:</strong> {selectedSupplier?.phone || 'غير متوفر'}</p>}
-                                    </div>
-                                </div>
+                        {/* Preview in Card (optional, or just keep the modal) */}
+                        <div className="opacity-50 pointer-events-none select-none overflow-hidden h-64 border rounded relative">
+                            <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/50">
+                                <p className="font-bold text-lg">اضغط على "طباعة" للمعاينة الكاملة</p>
                             </div>
-
-                            {sortedData.length > 0 ? (
-                                <table className="w-full text-sm text-right">
-                                    <thead className="text-xs text-slate-700 uppercase bg-slate-100">
-                                        <tr>
-                                            {visibleColumns.map(col => (
-                                                <th key={col.key} className="px-4 py-3 cursor-pointer" onClick={() => requestSort(col.key)}>
-                                                    {col.label}
-                                                    {sortConfig?.key === col.key && (sortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
-                                                </th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {sortedData.map(row => (
-                                            <tr key={`${row.productId}-${row.purchaseReason}-${row.clientName}`} className="bg-white border-b hover:bg-slate-50">
-                                                {visibleColumns.map(col => (
-                                                    <td key={col.key} className="px-4 py-3">
-                                                        {
-                                                            {
-                                                                product: <div>
-                                                                    <span className="font-semibold">{row.productName}</span>
-                                                                    <span className="block text-xs text-slate-400 font-mono">باركود: {row.productSku}</span>
-                                                                </div>,
-                                                                quantity: row.quantity,
-                                                                unitPrice: formatCurrency(row.unitPrice),
-                                                                totalPrice: formatCurrency(row.totalPrice),
-                                                                reason: row.purchaseReason,
-                                                                client: row.clientName,
-                                                            }[col.key]
-                                                        }
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                    <tfoot>
-                                        <tr className="bg-slate-100 font-bold text-base">
-                                            <td colSpan={Math.max(1, visibleColumns.length - 1)} className="px-4 py-3 text-left">الإجمالي النهائي للمطالبة</td>
-                                            <td className="px-4 py-3">{formatCurrency(grandTotal)}</td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            ) : (
-                                <p className="text-center text-slate-500 py-8">لا توجد بيانات تطابق الفلاتر المحددة.</p>
-                            )}
+                            <ReportContent />
                         </div>
                     </CardContent>
                 </Card>
@@ -353,12 +363,12 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                 <div className="space-y-2">
                     <p className="text-sm text-slate-600">اختر الأعمدة التي تريد إظهارها وأعد ترتيبها حسب الأولوية.</p>
                     {columns.map((col, index) => (
-                         <div key={col.key} className="flex items-center justify-between p-2 hover:bg-slate-100 rounded-md">
+                        <div key={col.key} className="flex items-center justify-between p-2 hover:bg-slate-100 rounded-md">
                             <label className="flex items-center gap-3">
-                                <input 
-                                    type="checkbox" 
-                                    checked={col.visible} 
-                                    onChange={() => setColumns(prev => prev.map(c => c.key === col.key ? {...c, visible: !c.visible} : c))}
+                                <input
+                                    type="checkbox"
+                                    checked={col.visible}
+                                    onChange={() => setColumns(prev => prev.map(c => c.key === col.key ? { ...c, visible: !c.visible } : c))}
                                 />
                                 {col.label}
                             </label>
@@ -366,10 +376,10 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                                 <button onClick={() => handleColumnMove(index, 'up')} disabled={index === 0} className="p-1 disabled:opacity-30">▲</button>
                                 <button onClick={() => handleColumnMove(index, 'down')} disabled={index === columns.length - 1} className="p-1 disabled:opacity-30">▼</button>
                             </div>
-                         </div>
+                        </div>
                     ))}
                 </div>
-                 <div className="flex justify-end pt-4">
+                <div className="flex justify-end pt-4">
                     <Button onClick={() => setIsColumnsModalOpen(false)}>تم</Button>
                 </div>
             </Modal>
@@ -402,70 +412,8 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
             {sortedData && (
                 <Modal isOpen={isPrintPreviewOpen} onClose={() => setIsPrintPreviewOpen(false)} title="معاينة طباعة المطالبة المالية">
                     <div className="flex flex-col h-[75vh]">
-                        <div className="flex-grow overflow-y-auto pr-4 -mr-4">
-                            <div className="print-area">
-                                <div className="mb-8">
-                                    <h2 className="text-3xl font-bold text-center">{printSettings.title}</h2>
-                                    <p className="text-center text-slate-500">{printSettings.companyName}</p>
-                                    <div className="grid grid-cols-2 gap-4 mt-6 text-sm border p-4 rounded-md">
-                                        <div>
-                                            <p><strong className="font-semibold">تاريخ المطالبة:</strong> {formatDate(new Date())}</p>
-                                            <p><strong className="font-semibold">الفترة:</strong> من {startDate || 'البداية'} إلى {endDate || 'النهاية'}</p>
-                                        </div>
-                                        <div className="text-left">
-                                            <p><strong className="font-semibold">إلى السيد/ة:</strong> {selectedSupplier?.name}</p>
-                                            {printSettings.showSupplierContact && <p><strong className="font-semibold">هاتف:</strong> {selectedSupplier?.phone || 'غير متوفر'}</p>}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {sortedData.length > 0 ? (
-                                    <table className="w-full text-sm text-right">
-                                        <thead className="text-xs text-slate-700 uppercase bg-slate-100">
-                                            <tr>
-                                                {visibleColumns.map(col => (
-                                                    <th key={col.key} className="px-4 py-3">{col.label}</th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {sortedData.map(row => (
-                                                <tr key={`${row.productId}-${row.purchaseReason}-${row.clientName}`} className="bg-white border-b">
-                                                    {visibleColumns.map(col => (
-                                                        <td key={col.key} className="px-4 py-3">
-                                                            {
-                                                                {
-                                                                    product: <div>
-                                                                        <span className="font-semibold">{row.productName}</span>
-                                                                        <span className="block text-xs text-slate-400 font-mono">باركود: {row.productSku}</span>
-                                                                    </div>,
-                                                                    quantity: row.quantity,
-                                                                    unitPrice: formatCurrency(row.unitPrice),
-                                                                    totalPrice: formatCurrency(row.totalPrice),
-                                                                    reason: row.purchaseReason,
-                                                                    client: row.clientName,
-                                                                }[col.key]
-                                                            }
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                        <tfoot>
-                                            <tr className="bg-slate-100 font-bold text-base">
-                                                <td colSpan={Math.max(1, visibleColumns.length - 1)} className="px-4 py-3 text-left">الإجمالي النهائي للمطالبة</td>
-                                                <td className="px-4 py-3">{formatCurrency(grandTotal)}</td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                ) : (
-                                    <p className="text-center text-slate-500 py-8">لا توجد بيانات تطابق الفلاتر المحددة.</p>
-                                )}
-                                <div className="print-footer text-center text-xs text-slate-500 mt-20">
-                                    <p>{printSettings.footerText}</p>
-                                    <p>صفحة <span className="page-number"></span></p>
-                                </div>
-                            </div>
+                        <div className="flex-grow overflow-y-auto pr-4 -mr-4 bg-slate-50 p-4 rounded border">
+                            <ReportContent />
                         </div>
                         <div className="flex-shrink-0 flex justify-end gap-2 mt-6 pt-4 border-t no-print">
                             <Button variant="secondary" onClick={() => setIsPrintPreviewOpen(false)}>إغلاق</Button>
@@ -476,6 +424,12 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                         </div>
                     </div>
                 </Modal>
+            )}
+
+            {/* Hidden Print Portal - Always rendered when data exists, but only visible via CSS @media print */}
+            {sortedData && document.getElementById('print-root') && createPortal(
+                <ReportContent />,
+                document.getElementById('print-root')!
             )}
         </div>
     );

@@ -1,85 +1,90 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>إدارة المخزون الاحترافية</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-     <style>
-      @media print {
-        /* Reset containers to allow content to overflow and print across multiple pages */
-        body, #root > div, main {
-          overflow: visible !important;
-          height: auto !important;
-        }
 
-        body {
-          counter-reset: page;
-        }
-        body * {
-          visibility: hidden;
-        }
-        .print-container, .print-container *,
-        .print-area, .print-area * {
-          visibility: visible;
-        }
-        .print-container, .print-area {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
-          font-family: 'Tajawal', sans-serif;
-          font-size: 10pt;
-          color: #000 !important;
-          background-color: #fff !important;
-        }
-        .no-print {
-          display: none !important;
-        }
-        .print-container table, .print-area table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-        .print-container th, 
-        .print-container td,
-        .print-area th,
-        .print-area td {
-          border: 1px solid #ccc;
-          padding: 6px;
-          text-align: right;
-        }
-        .print-container thead,
-        .print-area thead {
-          display: table-header-group; /* Ensure header repeats on each page */
-          background-color: #f2f2f2 !important;
-          -webkit-print-color-adjust: exact; /* For Chrome, Safari */
-          print-color-adjust: exact; /* Standard */
-        }
-        .print-container tr,
-        .print-area tr {
-          page-break-inside: avoid;
-        }
-        .print-container a,
-        .print-area a {
-            text-decoration: none;
-            color: inherit;
-        }
-        .print-footer {
-            position: fixed;
-            bottom: 0.25in;
-            left: 0.75in;
-            right: 0.75in;
-            height: 0.5in;
-        }
-        .page-number::after {
-            counter-increment: page;
-            content: counter(page);
-        }
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إدارة المخزون الاحترافية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    @media print {
+      @page {
+        size: A4;
+        margin: 10mm;
       }
-    </style>
+
+      body {
+        margin: 0;
+        padding: 0;
+        background: white;
+      }
+
+      /* Hide the main app completely */
+      #root {
+        display: none !important;
+      }
+
+      /* Show the print portal */
+      #print-root {
+        display: block !important;
+        position: relative;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+        background: white;
+        font-family: 'Tajawal', sans-serif;
+      }
+
+      /* Ensure table headers repeat, but not the main page header */
+      thead {
+        display: table-header-group;
+      }
+
+      tr {
+        page-break-inside: avoid;
+      }
+
+      /* General print styling */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: right;
+        font-size: 12px;
+      }
+
+      th {
+        background-color: #f8f9fa !important;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .print-header {
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      .print-footer {
+        margin-top: 30px;
+        text-align: center;
+        font-size: 10px;
+        color: #666;
+      }
+    }
+
+    /* Hide print root on screen */
+    #print-root {
+      display: none;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -94,8 +99,11 @@
 </script>
 
 </head>
-  <body class="bg-light text-dark">
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+
+<body class="bg-light text-dark">
+  <div id="root"></div>
+  <div id="print-root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
 </html>
