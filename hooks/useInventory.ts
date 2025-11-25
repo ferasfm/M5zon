@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import type React from 'react';
-import { InventoryItem, Product, Supplier, Province, Area, Client, UseInventoryReturn, NewItem, PriceAgreement } from '../types';
+import { InventoryItem, Product, Supplier, Province, Area, Client, TransactionReason, UseInventoryReturn, NewItem, PriceAgreement } from '../types';
 import { useNotification } from '../contexts/NotificationContext';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { appConfig as settings } from '../config';
@@ -15,6 +15,7 @@ export const useInventory = (): UseInventoryReturn | null => {
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [areas, setAreas] = useState<Area[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
+    const [transactionReasons, setTransactionReasons] = useState<TransactionReason[]>([]);
 
     const fetchData = useCallback(async () => {
         if (!supabase) return;
@@ -86,6 +87,23 @@ export const useInventory = (): UseInventoryReturn | null => {
             }
         };
 
+        // Fetch transaction reasons
+        const fetchReasons = async () => {
+            const { data, error } = await supabase.from('transaction_reasons').select('*').order('display_order');
+            if (error) {
+                notification?.addNotification(`Failed to fetch transaction reasons: ${error.message}`, 'error');
+            } else if (data) {
+                const parsedData = data.map((reason: any) => ({
+                    id: reason.id,
+                    reasonText: reason.reason_text,
+                    reasonType: reason.reason_type,
+                    isActive: reason.is_active,
+                    displayOrder: reason.display_order
+                }));
+                setTransactionReasons(parsedData);
+            }
+        };
+
         await Promise.all([
             fetchTable('products', setProducts),
             fetchTable('inventory_items', setInventoryItems),
@@ -93,6 +111,7 @@ export const useInventory = (): UseInventoryReturn | null => {
             fetchTable('provinces', setProvinces),
             fetchTable('areas', setAreas),
             fetchTable('clients', setClients),
+            fetchReasons(),
         ]);
     }, [supabase, notification]);
 
@@ -138,11 +157,6 @@ export const useInventory = (): UseInventoryReturn | null => {
                     console.log(`✅ تم حذف ${allRows.length} صف من جدول ${table}`);
                 } else {
                     console.log(`ℹ️ جدول ${table} فارغ بالفعل`);
-                }
-                
-                if (error) {
-                    console.error(`❌ خطأ في حذف جدول ${table}:`, error);
-                    throw error;
                 }
                 
                 console.log(`✅ تم حذف جدول ${table} بنجاح`);
@@ -537,12 +551,12 @@ export const useInventory = (): UseInventoryReturn | null => {
         deleteProvince: (id: string) => createApi('provinces', provinces, setProvinces, {table: 'areas', items: areas, field: 'province_id', errorMsg: 'لا يمكن حذف المحافظة لأنها تحتوي على مناطق.'}).delete(id),
     };
     const areasApi = {
-        addArea: (name: string, provinceId: string) => createApi('areas', areas, setAreas).add({name, province_id: provinceId}),
+        addArea: (name: string, provinceId: string) => createApi('areas', areas, setAreas).add({name, provinceId}),
         updateArea: (area: Area) => createApi('areas', areas, setAreas).update(area),
-        deleteArea: (id: string) => createApi('areas', areas, setAreas, {table: 'clients', items: clients, field: 'area_id', errorMsg: 'لا يمكن حذف المنطقة لأنها تحتوي على عملاء.'}).delete(id),
+        deleteArea: (id: string) => createApi('areas', areas, setAreas, {table: 'clients', items: clients, field: 'areaId', errorMsg: 'لا يمكن حذف المنطقة لأنها تحتوي على عملاء.'}).delete(id),
     };
     const clientsApi = {
-        addClient: (name: string, areaId: string) => createApi('clients', clients, setClients).add({name, area_id: areaId}),
+        addClient: (name: string, areaId: string) => createApi('clients', clients, setClients).add({name, areaId}),
         updateClient: (client: Client) => createApi('clients', clients, setClients).update(client),
         deleteClient: (id: string) => {
             if (inventoryItems.some(i => i.destinationClientId === id || i.dispatchClientId === id)) {
@@ -599,6 +613,88 @@ export const useInventory = (): UseInventoryReturn | null => {
         ).reduce((total, item) => total + item.costPrice, 0);
     };
 
+    // --- TRANSACTION REASONS API ---
+    const addReason = async (reasonText: string, reasonType: 'purchase' | 'dispatch' | 'scrap' | 'both') => {
+        if (!supabase) return;
+        const maxOrder = transactionReasons.length > 0 ? Math.max(...transactionReasons.map(r => r.displayOrder)) : 0;
+        const { data, error } = await supabase.from('transaction_reasons').insert({
+            reason_text: reasonText,
+            reason_type: reasonType,
+            display_order: maxOrder + 1,
+            is_active: true
+        }).select();
+        
+        if (error) {
+            notification?.addNotification(`فشل إضافة السبب: ${error.message}`, 'error');
+        } else if (data && data[0]) {
+            const newReason: TransactionReason = {
+                id: data[0].id,
+                reasonText: data[0].reason_text,
+                reasonType: data[0].reason_type,
+                isActive: data[0].is_active,
+                displayOrder: data[0].display_order
+            };
+            setTransactionReasons(prev => [...prev, newReason]);
+            notification?.addNotification('تم إضافة السبب بنجاح', 'success');
+        }
+    };
+
+    const updateReason = async (reason: TransactionReason) => {
+        if (!supabase) return;
+        const { error } = await supabase.from('transaction_reasons').update({
+            reason_text: reason.reasonText,
+            reason_type: reason.reasonType,
+            is_active: reason.isActive,
+            display_order: reason.displayOrder
+        }).eq('id', reason.id);
+        
+        if (error) {
+            notification?.addNotification(`فشل تحديث السبب: ${error.message}`, 'error');
+        } else {
+            setTransactionReasons(prev => prev.map(r => r.id === reason.id ? reason : r));
+            notification?.addNotification('تم تحديث السبب بنجاح', 'success');
+        }
+    };
+
+    const deleteReason = async (id: string) => {
+        if (!supabase) return;
+        const { error } = await supabase.from('transaction_reasons').delete().eq('id', id);
+        
+        if (error) {
+            notification?.addNotification(`فشل حذف السبب: ${error.message}`, 'error');
+        } else {
+            setTransactionReasons(prev => prev.filter(r => r.id !== id));
+            notification?.addNotification('تم حذف السبب بنجاح', 'success');
+        }
+    };
+
+    const getPurchaseReasons = useCallback(() => {
+        return transactionReasons
+            .filter(r => r.isActive && (r.reasonType === 'purchase' || r.reasonType === 'both'))
+            .sort((a, b) => a.displayOrder - b.displayOrder);
+    }, [transactionReasons]);
+
+    const getDispatchReasons = useCallback(() => {
+        return transactionReasons
+            .filter(r => r.isActive && (r.reasonType === 'dispatch' || r.reasonType === 'both'))
+            .sort((a, b) => a.displayOrder - b.displayOrder);
+    }, [transactionReasons]);
+
+    const getScrapReasons = useCallback(() => {
+        return transactionReasons
+            .filter(r => r.isActive && r.reasonType === 'scrap')
+            .sort((a, b) => a.displayOrder - b.displayOrder);
+    }, [transactionReasons]);
+
+    const reasonsApi = useMemo(() => ({
+        addReason,
+        updateReason,
+        deleteReason,
+        getPurchaseReasons,
+        getDispatchReasons,
+        getScrapReasons
+    }), [getPurchaseReasons, getDispatchReasons, getScrapReasons]);
+
     if (!supabase) return null;
 
     return useMemo(() => ({
@@ -608,6 +704,7 @@ export const useInventory = (): UseInventoryReturn | null => {
         provinces,
         areas,
         clients,
+        transactionReasons,
         settings,
         wipeAllData,
         addProduct,
@@ -629,6 +726,7 @@ export const useInventory = (): UseInventoryReturn | null => {
         provincesApi,
         areasApi,
         clientsApi,
+        reasonsApi,
         getAggregatedInventoryValue,
         getLowStockProducts,
         getExpiringWarranties,

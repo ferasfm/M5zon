@@ -10,6 +10,7 @@ import DatabaseSettings from './DatabaseSettings';
 import AppSettingsPanel from './AppSettingsPanel';
 import SettingsTest from './SettingsTest';
 import DatabaseResetTest from './DatabaseResetTest';
+import ReasonsManager from './ReasonsManager';
 
 interface SettingsProps {
     inventory: UseInventoryReturn;
@@ -83,6 +84,8 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                 <AppSettingsPanel />
                 <SystemSettings />
                 <DatabaseSettings />
+                
+                <ReasonsManager inventory={inventory} />
 
                 <Card>
                     <CardHeader>

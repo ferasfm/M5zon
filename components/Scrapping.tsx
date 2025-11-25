@@ -7,24 +7,19 @@ import { Icons } from './icons';
 import ItemSearchModal from './ItemSearchModal';
 import { convertArabicInput } from '../utils/converters';
 
-const SCRAP_REASONS = [
-    'تلف بسبب سوء استخدام',
-    'عطل غير قابل للإصلاح',
-    'انتهاء العمر الافتراضي',
-    'مكسور',
-    'أسباب أخرى'
-];
+// SCRAP_REASONS now comes from database via reasonsApi
 
 const Scrapping: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
     const [itemsToScrap, setItemsToScrap] = useState<InventoryItem[]>([]);
     const [serialInput, setSerialInput] = useState('');
     const [error, setError] = useState('');
-    const [scrapReason, setScrapReason] = useState(SCRAP_REASONS[0]);
+    const [scrapReason, setScrapReason] = useState('');
     const [scrapNotes, setScrapNotes] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [itemForReview, setItemForReview] = useState<InventoryItem | null>(null);
     
-    const { findItemBySerial, getProductById, scrapItems, getSupplierById } = inventory;
+    const { findItemBySerial, getProductById, scrapItems, getSupplierById, reasonsApi } = inventory;
+    const scrapReasons = reasonsApi.getScrapReasons();
     const existingItemIds = useMemo(() => new Set(itemsToScrap.map(i => i.id)), [itemsToScrap]);
 
     const handleSearchItem = (e?: React.FormEvent) => {
@@ -217,7 +212,8 @@ const Scrapping: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
                                             <div>
                                                 <label htmlFor="scrapReason" className="block text-sm font-medium text-slate-700 mb-1">سبب الإتلاف*</label>
                                                 <select id="scrapReason" value={scrapReason} onChange={e => setScrapReason(e.target.value)} required className="w-full">
-                                                    {SCRAP_REASONS.map(reason => <option key={reason} value={reason}>{reason}</option>)}
+                                                    <option value="" disabled>اختر سبب الإتلاف...</option>
+                                                    {scrapReasons.map(reason => <option key={reason.id} value={reason.reasonText}>{reason.reasonText}</option>)}
                                                 </select>
                                             </div>
                                         </div>

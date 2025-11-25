@@ -74,6 +74,14 @@ export interface Client {
     areaId: string;
 }
 
+export interface TransactionReason {
+    id: string;
+    reasonText: string;
+    reasonType: 'purchase' | 'dispatch' | 'scrap' | 'both';
+    isActive: boolean;
+    displayOrder: number;
+}
+
 export type Page = 'dashboard' | 'products' | 'inventory' | 'receiving' | 'dispatching' | 'scrapping' | 'suppliers' | 'locations' | 'reports' | 'print_templates' | 'settings';
 
 export interface AppSettings {
@@ -89,6 +97,7 @@ export interface UseInventoryReturn {
   provinces: Province[];
   areas: Area[];
   clients: Client[];
+  transactionReasons: TransactionReason[];
   settings: AppSettings;
 
   // Settings
@@ -132,6 +141,16 @@ export interface UseInventoryReturn {
     updateClient: (client: Client) => void;
     deleteClient: (id: string) => void;
     getClientById: (id: string) => Client | undefined;
+  };
+  
+  // Transaction Reasons
+  reasonsApi: {
+    addReason: (reasonText: string, reasonType: 'purchase' | 'dispatch' | 'scrap' | 'both') => Promise<void>;
+    updateReason: (reason: TransactionReason) => Promise<void>;
+    deleteReason: (id: string) => Promise<void>;
+    getPurchaseReasons: () => TransactionReason[];
+    getDispatchReasons: () => TransactionReason[];
+    getScrapReasons: () => TransactionReason[];
   };
   
   // Dashboard Metrics

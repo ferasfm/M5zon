@@ -11,7 +11,7 @@ interface InventoryItemFormProps {
     batchDefaults: {
         purchaseDate: string;
         supplierId: string;
-        destinationClientId: string;
+        destinationClientId?: string;
         purchaseReason: string;
         initialStatus: 'in_stock' | 'damaged_on_arrival';
     };
@@ -93,7 +93,7 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({ inventory, onAddI
                 status: batchDefaults.initialStatus,
                 purchaseDate: new Date(batchDefaults.purchaseDate),
                 supplierId: batchDefaults.supplierId || undefined,
-                destinationClientId: batchDefaults.destinationClientId,
+                destinationClientId: batchDefaults.destinationClientId || undefined,
                 purchaseReason: batchDefaults.purchaseReason,
             };
 

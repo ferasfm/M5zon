@@ -12,12 +12,7 @@ import { useNotification } from '../contexts/NotificationContext';
 import { convertArabicInput } from '../utils/converters';
 
 
-const DISPATCH_REASONS = [
-    'احتياج جديد',
-    'بدل تالف',
-    'تجديد مخزون',
-    'مكسور',
-];
+// DISPATCH_REASONS now comes from database via reasonsApi
 
 const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
     const notification = useNotification();
@@ -39,7 +34,8 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
     const [searchModalInitialProductId, setSearchModalInitialProductId] = useState('');
     const [lastDispatch, setLastDispatch] = useState<{ client: any; date: string; reference: string; items: InventoryItem[] } | null>(null);
 
-    const { clients, provinces, areas, findItemBySerial, getProductById, products, inventoryItems, getClientFullNameById } = inventory;
+    const { clients, provinces, areas, findItemBySerial, getProductById, products, inventoryItems, getClientFullNameById, reasonsApi } = inventory;
+    const dispatchReasons = reasonsApi.getDispatchReasons();
     const bundleProducts = useMemo(() => products.filter(p => p.productType === 'bundle'), [products]);
     const existingItemIds = useMemo(() => new Set(itemsToDispatch.map(i => i.id)), [itemsToDispatch]);
 
@@ -444,7 +440,7 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                                                 <label htmlFor="dispatchReason" className="block text-sm font-medium text-slate-700 mb-1">سبب الصرف*</label>
                                                 <select id="dispatchReason" value={dispatchReason} onChange={e => setDispatchReason(e.target.value)} required className="w-full">
                                                     <option value="" disabled>اختر سبب الصرف...</option>
-                                                    {DISPATCH_REASONS.map(reason => <option key={reason} value={reason}>{reason}</option>)}
+                                                    {dispatchReasons.map(reason => <option key={reason.id} value={reason.reasonText}>{reason.reasonText}</option>)}
                                                 </select>
                                             </div>
                                             <div>

@@ -7,12 +7,7 @@ import InventoryItemForm from './InventoryItemForm';
 import { useNotification } from '../contexts/NotificationContext';
 import { formatCurrency } from '../utils/formatters';
 
-const PURCHASE_REASONS = [
-    'احتياج جديد',
-    'بدل تالف',
-    'تجديد مخزون',
-    'مكسور',
-];
+// PURCHASE_REASONS now comes from database via reasonsApi
 
 // This is a new type for the bundle component form
 interface BundleComponentToReceive {
@@ -30,9 +25,6 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
     // State for common batch data
     const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
     const [supplierId, setSupplierId] = useState('');
-    const [selectedProvinceId, setSelectedProvinceId] = useState('');
-    const [selectedAreaId, setSelectedAreaId] = useState('');
-    const [destinationClientId, setDestinationClientId] = useState('');
     const [purchaseReason, setPurchaseReason] = useState('');
     const [initialStatus, setInitialStatus] = useState<'in_stock' | 'damaged_on_arrival'>('in_stock');
 
@@ -42,35 +34,10 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
     const [bundleQuantity, setBundleQuantity] = useState(1);
     const [preparedComponents, setPreparedComponents] = useState<BundleComponentToReceive[]>([]);
     
-    const { suppliers, clients, provinces, areas, getClientFullNameById, getAreaById, getProvinceById, receiveItems, products, getProductById } = inventory;
+    const { suppliers, receiveItems, products, getProductById, reasonsApi } = inventory;
+    const purchaseReasons = reasonsApi.getPurchaseReasons();
     
     const bundleProducts = useMemo(() => products.filter(p => p.productType === 'bundle'), [products]);
-
-    // تصفية المناطق حسب المحافظة المختارة
-    const filteredAreas = useMemo(() => {
-        if (!selectedProvinceId) return [];
-        return areas.filter(area => area.provinceId === selectedProvinceId);
-    }, [areas, selectedProvinceId]);
-
-    // تصفية العملاء حسب المنطقة المختارة
-    const filteredClients = useMemo(() => {
-        if (!selectedAreaId) return [];
-        return clients.filter(client => client.areaId === selectedAreaId)
-            .sort((a, b) => a.name.localeCompare(b.name));
-    }, [clients, selectedAreaId]);
-
-    // معالجة تغيير المحافظة
-    const handleProvinceChange = (provinceId: string) => {
-        setSelectedProvinceId(provinceId);
-        setSelectedAreaId('');
-        setDestinationClientId('');
-    };
-
-    // معالجة تغيير المنطقة
-    const handleAreaChange = (areaId: string) => {
-        setSelectedAreaId(areaId);
-        setDestinationClientId('');
-    };
 
     const handleAddItemToList = (item: NewItem) => {
         if (itemsToReceive.some(i => i.serialNumber.trim().toLowerCase() === item.serialNumber.trim().toLowerCase())) {
@@ -88,9 +55,6 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
         setItemsToReceive([]);
         setPurchaseDate(new Date().toISOString().split('T')[0]);
         setSupplierId('');
-        setSelectedProvinceId('');
-        setSelectedAreaId('');
-        setDestinationClientId('');
         setPurchaseReason('');
         setInitialStatus('in_stock');
         // Reset bundle state too
@@ -114,7 +78,7 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
         // Error notifications are handled inside useInventory hook
     };
 
-    const canStartAdding = purchaseDate && selectedProvinceId && selectedAreaId && destinationClientId && purchaseReason;
+    const canStartAdding = purchaseDate && purchaseReason;
 
     const handlePrepareBundleComponents = () => {
         if (!selectedBundleId) return;
@@ -173,7 +137,6 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
             status: initialStatus,
             purchaseDate: new Date(purchaseDate),
             supplierId: supplierId || undefined,
-            destinationClientId: destinationClientId,
             purchaseReason: purchaseReason,
         }));
         
@@ -193,7 +156,7 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
                     <CardTitle>1. معلومات الاستلام الأساسية</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <label htmlFor="purchaseDate" className="block text-sm font-medium text-slate-700 mb-1">تاريخ الشراء/الاستلام*</label>
                             <input type="date" id="purchaseDate" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} required className="w-full" />
@@ -206,63 +169,22 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="provinceId" className="block text-sm font-medium text-slate-700 mb-1">1. المحافظة*</label>
-                            <select 
-                                id="provinceId" 
-                                value={selectedProvinceId} 
-                                onChange={e => handleProvinceChange(e.target.value)} 
-                                required 
-                                className="w-full"
-                            >
-                                <option value="">-- اختر المحافظة --</option>
-                                {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label htmlFor="areaId" className="block text-sm font-medium text-slate-700 mb-1">2. المنطقة*</label>
-                            <select 
-                                id="areaId" 
-                                value={selectedAreaId} 
-                                onChange={e => handleAreaChange(e.target.value)} 
-                                required 
-                                disabled={!selectedProvinceId}
-                                className="w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
-                            >
-                                <option value="">-- اختر المنطقة --</option>
-                                {filteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label htmlFor="destinationClientId" className="block text-sm font-medium text-slate-700 mb-1">3. العميل المستلم*</label>
-                            <select 
-                                id="destinationClientId" 
-                                value={destinationClientId} 
-                                onChange={e => setDestinationClientId(e.target.value)} 
-                                required 
-                                disabled={!selectedAreaId}
-                                className="w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
-                            >
-                                <option value="">-- اختر العميل --</option>
-                                {filteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                        </div>
-                        <div>
                             <label htmlFor="purchaseReason" className="block text-sm font-medium text-slate-700 mb-1">سبب الشراء*</label>
                             <select id="purchaseReason" value={purchaseReason} onChange={e => setPurchaseReason(e.target.value)} required className="w-full">
                                 <option value="" disabled>اختر سبب الشراء...</option>
-                                {PURCHASE_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+                                {purchaseReasons.map(r => <option key={r.id} value={r.reasonText}>{r.reasonText}</option>)}
                             </select>
                         </div>
-                        <div className="lg:col-span-2">
+                        <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">الحالة الأولية للقطع</label>
-                            <div className="flex gap-4 items-center h-full">
+                            <div className="flex gap-4 items-center h-full pt-2">
                                 <label className="flex items-center gap-2">
                                     <input type="radio" name="initialStatus" value="in_stock" checked={initialStatus === 'in_stock'} onChange={() => setInitialStatus('in_stock')} />
-                                    <span>سليم (في المخزون)</span>
+                                    <span className="text-sm">سليم</span>
                                 </label>
                                 <label className="flex items-center gap-2">
                                     <input type="radio" name="initialStatus" value="damaged_on_arrival" checked={initialStatus === 'damaged_on_arrival'} onChange={() => setInitialStatus('damaged_on_arrival')} />
-                                    <span>تالف عند الاستلام</span>
+                                    <span className="text-sm">تالف</span>
                                 </label>
                             </div>
                         </div>
@@ -309,7 +231,6 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
                                 batchDefaults={{
                                     purchaseDate,
                                     supplierId,
-                                    destinationClientId,
                                     purchaseReason,
                                     initialStatus,
                                 }}

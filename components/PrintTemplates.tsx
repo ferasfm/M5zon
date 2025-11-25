@@ -112,7 +112,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                     productName: product?.name || 'منتج غير معروف',
                     productSku: product?.sku || '-',
                     purchaseReason: item.purchaseReason || 'غير محدد',
-                    clientName: getClientFullNameById(item.destinationClientId!),
+                    clientName: item.destinationClientId ? getClientFullNameById(item.destinationClientId) : 'مستودع عام',
                     quantity: 0,
                     unitPrice: item.costPrice,
                     totalPrice: 0,
