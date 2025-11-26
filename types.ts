@@ -37,6 +37,8 @@ export interface InventoryItem {
   scrapNotes?: string;
   dispatchReference?: string;
   warrantyEndDate?: Date;
+  bundleGroupId?: string; // معرف فريد يربط القطع التي تنتمي لنفس الحزمة
+  bundleName?: string; // اسم الحزمة إذا كانت القطعة جزء من حزمة
 }
 
 export type NewItem = Omit<InventoryItem, 'id' | 'dispatchDate' | 'scrapDate' | 'dispatchClientId' | 'dispatchReason' | 'scrapReason' | 'dispatchNotes' | 'scrapNotes' | 'dispatchReference' | 'warrantyEndDate'>;

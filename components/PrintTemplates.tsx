@@ -102,26 +102,64 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
             return true;
         });
 
-        // Aggregate the data
+        // Aggregate the data - مع دعم الحزم
         const grouped = filteredItems.reduce((acc, item) => {
-            const key = `${item.productId}-${item.purchaseReason || 'N/A'}-${item.costPrice}-${item.destinationClientId}`;
-            if (!acc[key]) {
+            // إذا كانت القطعة جزء من حزمة، نستخدم bundleGroupId كمفتاح
+            // وإلا نستخدم المفتاح القديم (المنتج الفردي)
+            let key: string;
+            let productName: string;
+            let productSku: string;
+            let unitPrice: number;
+            
+            if (item.bundleGroupId) {
+                // هذه قطعة من حزمة - نجمعها حسب الحزمة
+                key = `bundle-${item.bundleGroupId}`;
+                productName = item.bundleName || 'حزمة';
+                productSku = 'حزمة';
+                
+                // حساب التكلفة الإجمالية للحزمة
+                if (!acc[key]) {
+                    unitPrice = 0; // سيتم حسابه لاحقاً
+                } else {
+                    unitPrice = acc[key].unitPrice;
+                }
+            } else {
+                // منتج عادي - نستخدم المنطق القديم
+                key = `${item.productId}-${item.purchaseReason || 'N/A'}-${item.costPrice}-${item.destinationClientId}`;
                 const product = getProductById(item.productId);
+                productName = product?.name || 'منتج غير معروف';
+                productSku = product?.sku || '-';
+                unitPrice = item.costPrice;
+            }
+            
+            if (!acc[key]) {
                 acc[key] = {
-                    productId: item.productId,
-                    productName: product?.name || 'منتج غير معروف',
-                    productSku: product?.sku || '-',
+                    productId: item.bundleGroupId ? 'bundle' : item.productId,
+                    productName: productName,
+                    productSku: productSku,
                     purchaseReason: item.purchaseReason || 'غير محدد',
                     clientName: item.destinationClientId ? getClientFullNameById(item.destinationClientId) : 'مستودع عام',
-                    quantity: 0,
-                    unitPrice: item.costPrice,
+                    quantity: item.bundleGroupId ? 1 : 0, // الحزمة تعتبر وحدة واحدة
+                    unitPrice: unitPrice,
                     totalPrice: 0,
                     items: []
                 };
             }
-            acc[key].quantity += 1;
-            acc[key].totalPrice += item.costPrice;
+            
+            // إضافة القطعة للمجموعة
             acc[key].items.push(item);
+            acc[key].totalPrice += item.costPrice;
+            
+            // للمنتجات العادية، نزيد العدد
+            if (!item.bundleGroupId) {
+                acc[key].quantity += 1;
+            }
+            
+            // للحزم، نحدث سعر الوحدة ليكون التكلفة الإجمالية
+            if (item.bundleGroupId) {
+                acc[key].unitPrice = acc[key].totalPrice;
+            }
+            
             return acc;
         }, {} as Record<string, FinancialClaimRow & { items: InventoryItem[] }>);
 

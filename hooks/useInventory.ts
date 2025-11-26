@@ -44,7 +44,9 @@ export const useInventory = (): UseInventoryReturn | null => {
                         dispatchReference: item.dispatch_reference,
                         scrapReason: item.scrap_reason,
                         scrapNotes: item.scrap_notes,
-                        serialNumber: item.serial_number
+                        serialNumber: item.serial_number,
+                        bundleGroupId: item.bundle_group_id,
+                        bundleName: item.bundle_name
                     }));
                     setter(parsedData);
                 } else if (tableName === 'suppliers' && data) {
@@ -299,7 +301,9 @@ export const useInventory = (): UseInventoryReturn | null => {
                 supplier_id: item.supplierId,
                 destination_client_id: item.destinationClientId,
                 purchase_reason: item.purchaseReason,
-                warranty_end_date: warrantyEndDate
+                warranty_end_date: warrantyEndDate,
+                bundle_group_id: item.bundleGroupId, // إضافة معرف الحزمة
+                bundle_name: item.bundleName // إضافة اسم الحزمة
             };
 
             return dbItem;
@@ -329,7 +333,9 @@ export const useInventory = (): UseInventoryReturn | null => {
                 dispatchReference: item.dispatch_reference,
                 scrapReason: item.scrap_reason,
                 scrapNotes: item.scrap_notes,
-                serialNumber: item.serial_number
+                serialNumber: item.serial_number,
+                bundleGroupId: item.bundle_group_id,
+                bundleName: item.bundle_name
             }));
             setInventoryItems(prev => [...prev, ...parsedData]);
             return true;

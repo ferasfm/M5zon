@@ -130,6 +130,11 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
             batchSerials.add(lowerSerial);
         }
 
+        // توليد معرف فريد للحزمة
+        const bundleGroupId = `bundle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const bundle = getProductById(selectedBundleId);
+        const bundleName = bundle?.name || 'حزمة';
+
         const newItems: NewItem[] = preparedComponents.map(comp => ({
             productId: comp.productId,
             serialNumber: comp.serialNumber.trim(),
@@ -138,6 +143,8 @@ const Receiving: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
             purchaseDate: new Date(purchaseDate),
             supplierId: supplierId || undefined,
             purchaseReason: purchaseReason,
+            bundleGroupId: bundleGroupId, // إضافة معرف الحزمة
+            bundleName: bundleName, // إضافة اسم الحزمة
         }));
         
         setItemsToReceive(prev => [...prev, ...newItems]);

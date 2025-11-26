@@ -309,29 +309,60 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         });
 
         // FIX: Explicitly type the accumulator in the reduce function to prevent TypeScript from inferring it as `any` or `unknown`.
+        // دعم الحزم: تجميع حسب bundleGroupId إذا كانت القطعة جزء من حزمة
         const aggregated = Object.values(filteredItems.reduce((acc: Record<string, AggregatedReceiveRow>, item) => {
-            const key = `${item.productId}-${item.destinationClientId}-${item.purchaseReason}-${item.costPrice}`;
-            if (!acc[key]) {
+            let key: string;
+            let productName: string;
+            let productSku: string;
+            let unitPrice: number;
+            
+            if (item.bundleGroupId) {
+                // هذه قطعة من حزمة - نجمعها حسب الحزمة
+                key = `bundle-${item.bundleGroupId}`;
+                productName = item.bundleName || 'حزمة';
+                productSku = 'حزمة';
+                unitPrice = 0; // سيتم حسابه لاحقاً
+            } else {
+                // منتج عادي - نستخدم المنطق القديم
+                key = `${item.productId}-${item.destinationClientId}-${item.purchaseReason}-${item.costPrice}`;
                 const product = getProductById(item.productId);
+                productName = product?.name || 'N/A';
+                productSku = product?.sku || 'N/A';
+                unitPrice = item.costPrice;
+            }
+            
+            if (!acc[key]) {
                 const supplier = item.supplierId ? getSupplierById(item.supplierId) : null;
                 acc[key] = {
                     key: key,
-                    productId: item.productId,
-                    productName: product?.name || 'N/A',
-                    productSku: product?.sku || 'N/A',
+                    productId: item.bundleGroupId ? 'bundle' : item.productId,
+                    productName: productName,
+                    productSku: productSku,
                     destinationClientId: item.destinationClientId!,
                     clientName: getClientFullNameById(item.destinationClientId!),
                     purchaseReason: item.purchaseReason || 'N/A',
                     supplierId: item.supplierId,
                     supplierName: supplier?.name || 'N/A',
-                    quantity: 0,
-                    unitPrice: item.costPrice,
+                    quantity: item.bundleGroupId ? 1 : 0, // الحزمة تعتبر وحدة واحدة
+                    unitPrice: unitPrice,
                     totalPrice: 0,
                     purchaseDate: item.purchaseDate
                 };
             }
-            acc[key].quantity += 1;
+            
+            // للمنتجات العادية، نزيد العدد
+            if (!item.bundleGroupId) {
+                acc[key].quantity += 1;
+            }
+            
+            // إضافة التكلفة
             acc[key].totalPrice += item.costPrice;
+            
+            // للحزم، نحدث سعر الوحدة ليكون التكلفة الإجمالية
+            if (item.bundleGroupId) {
+                acc[key].unitPrice = acc[key].totalPrice;
+            }
+            
             if (item.purchaseDate < acc[key].purchaseDate) {
                 acc[key].purchaseDate = item.purchaseDate;
             }
@@ -360,25 +391,56 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             return true;
         });
 
+        // دعم الحزم: تجميع حسب bundleGroupId إذا كانت القطعة جزء من حزمة
         const aggregated = Object.values(filteredItems.reduce((acc: Record<string, AggregatedDispatchRow>, item) => {
-            const key = `${item.productId}-${item.dispatchClientId}-${item.costPrice}`;
-            if (!acc[key]) {
+            let key: string;
+            let productName: string;
+            let productSku: string;
+            let unitPrice: number;
+            
+            if (item.bundleGroupId) {
+                // هذه قطعة من حزمة - نجمعها حسب الحزمة
+                key = `bundle-${item.bundleGroupId}`;
+                productName = item.bundleName || 'حزمة';
+                productSku = 'حزمة';
+                unitPrice = 0; // سيتم حسابه لاحقاً
+            } else {
+                // منتج عادي - نستخدم المنطق القديم
+                key = `${item.productId}-${item.dispatchClientId}-${item.costPrice}`;
                 const product = getProductById(item.productId);
+                productName = product?.name || 'N/A';
+                productSku = product?.sku || 'N/A';
+                unitPrice = item.costPrice;
+            }
+            
+            if (!acc[key]) {
                 acc[key] = {
                     key: key,
-                    productId: item.productId,
-                    productName: product?.name || 'N/A',
-                    productSku: product?.sku || 'N/A',
+                    productId: item.bundleGroupId ? 'bundle' : item.productId,
+                    productName: productName,
+                    productSku: productSku,
                     dispatchClientId: item.dispatchClientId!,
                     clientName: getClientFullNameById(item.dispatchClientId!),
-                    quantity: 0,
-                    unitPrice: item.costPrice,
+                    quantity: item.bundleGroupId ? 1 : 0, // الحزمة تعتبر وحدة واحدة
+                    unitPrice: unitPrice,
                     totalPrice: 0,
                     dispatchDate: item.dispatchDate
                 };
             }
-            acc[key].quantity += 1;
+            
+            // للمنتجات العادية، نزيد العدد
+            if (!item.bundleGroupId) {
+                acc[key].quantity += 1;
+            }
+            
+            // إضافة التكلفة
             acc[key].totalPrice += item.costPrice;
+            
+            // للحزم، نحدث سعر الوحدة ليكون التكلفة الإجمالية
+            if (item.bundleGroupId) {
+                acc[key].unitPrice = acc[key].totalPrice;
+            }
+            
             if (item.dispatchDate < acc[key].dispatchDate) {
                 acc[key].dispatchDate = item.dispatchDate;
             }

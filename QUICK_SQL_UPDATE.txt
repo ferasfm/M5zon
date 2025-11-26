@@ -1,0 +1,31 @@
+========================================
+  تحديث قاعدة البيانات - نسخ ولصق
+========================================
+
+الخطوات:
+1. افتح: https://supabase.com/dashboard
+2. اختر مشروعك
+3. SQL Editor → New Query
+4. انسخ الكود أدناه والصقه
+5. اضغط Run (أو F5)
+
+========================================
+الكود:
+========================================
+
+ALTER TABLE inventory_items 
+ADD COLUMN IF NOT EXISTS bundle_group_id TEXT;
+
+ALTER TABLE inventory_items 
+ADD COLUMN IF NOT EXISTS bundle_name TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_inventory_items_bundle_group 
+ON inventory_items(bundle_group_id) 
+WHERE bundle_group_id IS NOT NULL;
+
+========================================
+انتهى!
+========================================
+
+بعد تشغيل الكود، أعد تشغيل البرنامج.
+الآن يمكنك استخدام ميزة "استلام حزمة"!
