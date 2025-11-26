@@ -31,7 +31,14 @@ const SupplierProfile: React.FC<SupplierProfileProps> = ({ supplierId, onBack, i
 
     const supplierItems = useMemo(() => {
         if (!supplier) return [];
-        return inventoryItems.filter(item => item.supplierId === supplier.id);
+        return inventoryItems
+            .filter(item => item.supplierId === supplier.id)
+            .sort((a, b) => {
+                // ترتيب من الأحدث إلى الأقدم
+                const dateA = a.purchaseDate ? new Date(a.purchaseDate).getTime() : 0;
+                const dateB = b.purchaseDate ? new Date(b.purchaseDate).getTime() : 0;
+                return dateB - dateA;
+            });
     }, [inventoryItems, supplier]);
 
     const handleSubmitAgreement = (data: { productId: string; price: number; startDate: string; }) => {

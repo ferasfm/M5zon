@@ -71,7 +71,7 @@ const Suppliers: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
                             type="text"
                             placeholder="بحث بالاسم، جهة الاتصال أو الهاتف..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(convertArabicInput(e.target.value))}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full md:w-1/3"
                         />
                     </div>

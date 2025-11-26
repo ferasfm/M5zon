@@ -19,6 +19,7 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ inventory }) => {
     const { settings, wipeAllData } = inventory;
     const { getSetting, updateSetting } = useSettings();
+    const [activeTab, setActiveTab] = useState<'general' | 'reasons' | 'system' | 'data'>('general');
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [resetConfirmationText, setResetConfirmationText] = useState('');
     const [companyName, setCompanyName] = useState('');
@@ -79,14 +80,55 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
             <div className="space-y-6">
                 <h1 className="text-3xl font-bold text-dark">الإعدادات</h1>
 
-                <SettingsTest />
-                <DatabaseResetTest />
-                <AppSettingsPanel />
-                <SystemSettings />
-                <DatabaseSettings />
-                
-                <ReasonsManager inventory={inventory} />
+                {/* Tabs Navigation */}
+                <div className="border-b border-slate-200">
+                    <nav className="-mb-px flex gap-6" aria-label="Tabs">
+                        <button
+                            onClick={() => setActiveTab('general')}
+                            className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
+                                activeTab === 'general' 
+                                ? 'border-primary text-primary' 
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            }`}
+                        >
+                            ⚙️ إعدادات عامة
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('reasons')}
+                            className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
+                                activeTab === 'reasons' 
+                                ? 'border-primary text-primary' 
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            }`}
+                        >
+                            📝 إدارة الأسباب
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('system')}
+                            className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
+                                activeTab === 'system' 
+                                ? 'border-primary text-primary' 
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            }`}
+                        >
+                            🔧 إعدادات النظام
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('data')}
+                            className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
+                                activeTab === 'data' 
+                                ? 'border-primary text-primary' 
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            }`}
+                        >
+                            🗄️ إدارة البيانات
+                        </button>
+                    </nav>
+                </div>
 
+                {/* General Settings Tab */}
+                {activeTab === 'general' && (
+                <>
                 <Card>
                     <CardHeader>
                         <CardTitle>معلومات الشركة</CardTitle>
@@ -182,7 +224,27 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                         </div>
                     </CardContent>
                 </Card>
+                </>
+                )}
 
+                {/* Reasons Manager Tab */}
+                {activeTab === 'reasons' && (
+                <ReasonsManager inventory={inventory} />
+                )}
+
+                {/* System Settings Tab */}
+                {activeTab === 'system' && (
+                <>
+                <SettingsTest />
+                <DatabaseResetTest />
+                <AppSettingsPanel />
+                <SystemSettings />
+                <DatabaseSettings />
+                </>
+                )}
+
+                {/* Data Management Tab */}
+                {activeTab === 'data' && (
                 <Card className="border-danger">
                     <CardHeader>
                         <CardTitle className="text-danger">إدارة البيانات</CardTitle>
@@ -201,7 +263,7 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                         </div>
                     </CardContent>
                 </Card>
-            </div>
+                )}
 
             <Modal isOpen={isResetModalOpen} onClose={() => setIsResetModalOpen(false)} title="تأكيد إعادة تعيين البيانات">
                 <div className="space-y-4">
@@ -239,6 +301,7 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                     </div>
                 </div>
             </Modal>
+            </div>
         </>
     );
 };

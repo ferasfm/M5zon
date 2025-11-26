@@ -89,6 +89,9 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
     const { getSetting } = useSettings();
     const [companyName, setCompanyName] = useState('نظام إدارة المخزون');
 
+    // Active tab state
+    const [activeTab, setActiveTab] = useState<'inventory' | 'receive' | 'dispatch'>('inventory');
+
     // State for inventory report
     const [invSelectedCategory, setInvSelectedCategory] = useState<string>('all');
     const [invSelectedStatus, setInvSelectedStatus] = useState<string>('in_stock');
@@ -570,6 +573,44 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         <div className="space-y-6">
             <h1 className="text-3xl font-bold text-dark">التقارير</h1>
 
+            {/* Tabs Navigation */}
+            <div className="border-b border-slate-200">
+                <nav className="-mb-px flex gap-6" aria-label="Tabs">
+                    <button
+                        onClick={() => setActiveTab('inventory')}
+                        className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
+                            activeTab === 'inventory' 
+                            ? 'border-primary text-primary' 
+                            : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                        }`}
+                    >
+                        📊 تقرير المخزون الشامل
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('receive')}
+                        className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
+                            activeTab === 'receive' 
+                            ? 'border-primary text-primary' 
+                            : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                        }`}
+                    >
+                        📥 تقرير استلام البضاعة
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('dispatch')}
+                        className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
+                            activeTab === 'dispatch' 
+                            ? 'border-primary text-primary' 
+                            : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                        }`}
+                    >
+                        📤 تقرير صرف البضاعة
+                    </button>
+                </nav>
+            </div>
+
+            {/* Inventory Report Tab */}
+            {activeTab === 'inventory' && (
             <Card>
                 <CardHeader>
                     <CardTitle>تقرير المخزون الشامل</CardTitle>
@@ -679,7 +720,10 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                     )}
                 </CardContent>
             </Card>
+            )}
 
+            {/* Receive Report Tab */}
+            {activeTab === 'receive' && (
             <Card>
                 <CardHeader>
                     <CardTitle>تقرير استلام بضاعة</CardTitle>
@@ -811,7 +855,10 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                     )}
                 </CardContent>
             </Card>
+            )}
 
+            {/* Dispatch Report Tab */}
+            {activeTab === 'dispatch' && (
             <Card>
                 <CardHeader>
                     <CardTitle>تقرير صرف بضاعة</CardTitle>
@@ -920,8 +967,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                         <td colSpan={Math.max(1, dispatchColumns.filter(c => c.visible).length - 1)} className="px-4 py-3 text-left">الإجمالي</td>
                                         <td className="px-4 py-3">
                                             {sortedDispatchData &&
-                                                formatCurrency(sortedDispatchData.reduce((acc, row) => acc + row.totalPrice, 0))
-                                            }
+                                                formatCurrency(sortedDispatchData.reduce((acc, row) => acc + row.totalPrice, 0))}
                                         </td>
                                     </tr>
                                 </tfoot>
@@ -930,7 +976,9 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                     )}
                 </CardContent>
             </Card>
+            )}
 
+            {/* Modals for Receive Report */}
             <Modal isOpen={isReceiveColumnModalOpen} onClose={() => setIsReceiveColumnModalOpen(false)} title="تخصيص أعمدة التقرير">
                 <div className="space-y-2">
                     <p className="text-sm text-slate-600">اختر الأعمدة التي تريد إظهارها وأعد ترتيبها حسب الأولوية.</p>
@@ -956,87 +1004,6 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                 </div>
             </Modal>
 
-            <Modal isOpen={isPrintPreviewOpen} onClose={() => setIsPrintPreviewOpen(false)} title="معاينة طباعة تقرير الاستلام">
-                <div className="flex flex-col h-[75vh]">
-                    <div className="flex-grow overflow-y-auto pr-4 -mr-4">
-                        <div className="print-area">
-                            <div className="mb-8">
-                                <h1 className="text-3xl font-bold text-center mb-2">{companyName}</h1>
-                                <h2 className="text-2xl font-bold text-center">تقرير استلام بضاعة</h2>
-                                <p className="text-center text-slate-500">تاريخ الطباعة: {formatDateTime(new Date())}</p>
-                                <div className="mt-4 text-sm p-4 bg-slate-50 rounded-md border">
-                                    <h3 className="font-bold mb-2">معايير البحث:</h3>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1">
-                                        <div><strong>المورد:</strong> {receiveSelectedSupplier === 'all' ? 'الكل' : getSupplierById(receiveSelectedSupplier)?.name}</div>
-                                        <div><strong>العميل:</strong> {receiveSelectedClient === 'all' ? 'الكل' : getClientFullNameById(receiveSelectedClient)}</div>
-                                        <div><strong>من تاريخ:</strong> {receiveStartDate || 'البداية'}</div>
-                                        <div><strong>إلى تاريخ:</strong> {receiveEndDate || 'النهاية'}</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {sortedReceiveData && sortedReceiveData.length > 0 ? (
-                                <table className="w-full text-sm text-right">
-                                    <thead className="text-xs text-slate-700 uppercase bg-slate-100">
-                                        <tr>
-                                            {receiveColumns.filter(c => c.visible).map(col => (
-                                                <th key={col.key} className="px-4 py-3">{col.label}</th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {sortedReceiveData.map(row => (
-                                            <tr key={row.key} className="bg-white border-b">
-                                                {receiveColumns.filter(c => c.visible).map(col => (
-                                                    <td key={col.key} className="px-4 py-3 align-top">
-                                                        {
-                                                            ({
-                                                                product: <div><span className="font-semibold">{row.productName}</span><span className="block text-xs font-mono text-slate-400">{row.productSku}</span></div>,
-                                                                quantity: row.quantity,
-                                                                cost: formatCurrency(row.unitPrice),
-                                                                totalPrice: formatCurrency(row.totalPrice),
-                                                                reason: row.purchaseReason,
-                                                                client: row.clientName,
-                                                                supplier: row.supplierName,
-                                                                date: formatDate(row.purchaseDate),
-                                                                serial: "N/A"
-                                                            } as Record<ReceiveReportColumnKey, ReactNode>)[col.key]
-                                                        }
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                    <tfoot>
-                                        <tr className="bg-slate-100 font-bold text-base">
-                                            <td colSpan={Math.max(1, receiveColumns.filter(c => c.visible).length - 1)} className="px-4 py-3 text-left">الإجمالي</td>
-                                            <td className="px-4 py-3">
-                                                {
-                                                    formatCurrency(sortedReceiveData.reduce((acc, row) => acc + row.totalPrice, 0))
-                                                }
-                                            </td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            ) : (
-                                <p className="text-center text-slate-500 py-8">لا توجد بيانات لعرضها.</p>
-                            )}
-
-                            <div className="print-footer text-center text-xs text-slate-500 mt-20">
-                                <p>هذا التقرير تم إنشاؤه بواسطة {companyName}.</p>
-                                <p>صفحة <span className="page-number"></span></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex-shrink-0 flex justify-end gap-2 mt-6 pt-4 border-t no-print">
-                        <Button variant="secondary" onClick={() => setIsPrintPreviewOpen(false)}>إغلاق</Button>
-                        <Button onClick={handlePrintAction}>
-                            <Icons.Printer className="h-4 w-4 ml-2" />
-                            طباعة الآن
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
 
             <Modal isOpen={isDispatchColumnModalOpen} onClose={() => setIsDispatchColumnModalOpen(false)} title="تخصيص أعمدة تقرير الصرف">
                 <div className="space-y-2">
@@ -1201,6 +1168,88 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                     </div>
                     <div className="flex-shrink-0 flex justify-end gap-2 mt-6 pt-4 border-t no-print">
                         <Button variant="secondary" onClick={() => setIsInvPrintPreviewOpen(false)}>إغلاق</Button>
+                        <Button onClick={handlePrintAction}>
+                            <Icons.Printer className="h-4 w-4 ml-2" />
+                            طباعة الآن
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal isOpen={isPrintPreviewOpen} onClose={() => setIsPrintPreviewOpen(false)} title="معاينة طباعة تقرير الاستلام">
+                <div className="flex flex-col h-[75vh]">
+                    <div className="flex-grow overflow-y-auto pr-4 -mr-4">
+                        <div className="print-area">
+                            <div className="mb-8">
+                                <h1 className="text-3xl font-bold text-center mb-2">{companyName}</h1>
+                                <h2 className="text-2xl font-bold text-center">تقرير استلام بضاعة</h2>
+                                <p className="text-center text-slate-500">تاريخ الطباعة: {formatDateTime(new Date())}</p>
+                                <div className="mt-4 text-sm p-4 bg-slate-50 rounded-md border">
+                                    <h3 className="font-bold mb-2">معايير البحث:</h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1">
+                                        <div><strong>المورد:</strong> {receiveSelectedSupplier === 'all' ? 'الكل' : getSupplierById(receiveSelectedSupplier)?.name}</div>
+                                        <div><strong>العميل:</strong> {receiveSelectedClient === 'all' ? 'الكل' : getClientFullNameById(receiveSelectedClient)}</div>
+                                        <div><strong>من تاريخ:</strong> {receiveStartDate || 'البداية'}</div>
+                                        <div><strong>إلى تاريخ:</strong> {receiveEndDate || 'النهاية'}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {sortedReceiveData && sortedReceiveData.length > 0 ? (
+                                <table className="w-full text-sm text-right">
+                                    <thead className="text-xs text-slate-700 uppercase bg-slate-100">
+                                        <tr>
+                                            {receiveColumns.filter(c => c.visible).map(col => (
+                                                <th key={col.key} className="px-4 py-3">{col.label}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sortedReceiveData.map(row => (
+                                            <tr key={row.key} className="bg-white border-b">
+                                                {receiveColumns.filter(c => c.visible).map(col => (
+                                                    <td key={col.key} className="px-4 py-3 align-top">
+                                                        {
+                                                            ({
+                                                                product: <div><span className="font-semibold">{row.productName}</span><span className="block text-xs font-mono text-slate-400">{row.productSku}</span></div>,
+                                                                quantity: row.quantity,
+                                                                cost: formatCurrency(row.unitPrice),
+                                                                totalPrice: formatCurrency(row.totalPrice),
+                                                                reason: row.purchaseReason,
+                                                                client: row.clientName,
+                                                                supplier: row.supplierName,
+                                                                date: formatDate(row.purchaseDate),
+                                                                serial: "N/A"
+                                                            } as Record<ReceiveReportColumnKey, ReactNode>)[col.key]
+                                                        }
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr className="bg-slate-100 font-bold text-base">
+                                            <td colSpan={Math.max(1, receiveColumns.filter(c => c.visible).length - 1)} className="px-4 py-3 text-left">الإجمالي</td>
+                                            <td className="px-4 py-3">
+                                                {
+                                                    formatCurrency(sortedReceiveData.reduce((acc, row) => acc + row.totalPrice, 0))
+                                                }
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            ) : (
+                                <p className="text-center text-slate-500 py-8">لا توجد بيانات لعرضها.</p>
+                            )}
+
+                            <div className="print-footer text-center text-xs text-slate-500 mt-20">
+                                <p>هذا التقرير تم إنشاؤه بواسطة {companyName}.</p>
+                                <p>صفحة <span className="page-number"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex-shrink-0 flex justify-end gap-2 mt-6 pt-4 border-t no-print">
+                        <Button variant="secondary" onClick={() => setIsPrintPreviewOpen(false)}>إغلاق</Button>
                         <Button onClick={handlePrintAction}>
                             <Icons.Printer className="h-4 w-4 ml-2" />
                             طباعة الآن

@@ -118,7 +118,7 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
                     type="text"
                     placeholder={`بحث في ${activeTab === 'standard' ? 'المنتجات العادية' : 'الحزم'}...`}
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(convertArabicInput(e.target.value))}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full md:w-1/3"
                 />
             </div>
