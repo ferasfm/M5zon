@@ -551,13 +551,49 @@ export const useInventory = (): UseInventoryReturn | null => {
         deleteProvince: (id: string) => createApi('provinces', provinces, setProvinces, {table: 'areas', items: areas, field: 'province_id', errorMsg: 'لا يمكن حذف المحافظة لأنها تحتوي على مناطق.'}).delete(id),
     };
     const areasApi = {
-        addArea: (name: string, provinceId: string) => createApi('areas', areas, setAreas).add({name, provinceId}),
-        updateArea: (area: Area) => createApi('areas', areas, setAreas).update(area),
+        addArea: async (name: string, provinceId: string) => {
+            if (!supabase) return;
+            const { data, error } = await supabase.from('areas').insert([{name, province_id: provinceId}]).select();
+            if (error) notification?.addNotification(`Failed to add: ${error.message}`, 'error');
+            else if (data) {
+                const convertedData = convertLocationData(data[0]);
+                setAreas(prev => [...prev, convertedData]);
+                notification?.addNotification(`تمت الإضافة بنجاح.`, 'success');
+            }
+        },
+        updateArea: async (area: Area) => {
+            if (!supabase) return;
+            const { data, error } = await supabase.from('areas').update({name: area.name, province_id: area.provinceId}).eq('id', area.id).select();
+            if (error) notification?.addNotification(`Failed to update: ${error.message}`, 'error');
+            else if (data) {
+                const convertedData = convertLocationData(data[0]);
+                setAreas(prev => prev.map(p => p.id === area.id ? convertedData : p));
+                notification?.addNotification(`تم التحديث بنجاح.`, 'success');
+            }
+        },
         deleteArea: (id: string) => createApi('areas', areas, setAreas, {table: 'clients', items: clients, field: 'areaId', errorMsg: 'لا يمكن حذف المنطقة لأنها تحتوي على عملاء.'}).delete(id),
     };
     const clientsApi = {
-        addClient: (name: string, areaId: string) => createApi('clients', clients, setClients).add({name, areaId}),
-        updateClient: (client: Client) => createApi('clients', clients, setClients).update(client),
+        addClient: async (name: string, areaId: string) => {
+            if (!supabase) return;
+            const { data, error } = await supabase.from('clients').insert([{name, area_id: areaId}]).select();
+            if (error) notification?.addNotification(`Failed to add: ${error.message}`, 'error');
+            else if (data) {
+                const convertedData = convertLocationData(data[0]);
+                setClients(prev => [...prev, convertedData]);
+                notification?.addNotification(`تمت الإضافة بنجاح.`, 'success');
+            }
+        },
+        updateClient: async (client: Client) => {
+            if (!supabase) return;
+            const { data, error } = await supabase.from('clients').update({name: client.name, area_id: client.areaId}).eq('id', client.id).select();
+            if (error) notification?.addNotification(`Failed to update: ${error.message}`, 'error');
+            else if (data) {
+                const convertedData = convertLocationData(data[0]);
+                setClients(prev => prev.map(p => p.id === client.id ? convertedData : p));
+                notification?.addNotification(`تم التحديث بنجاح.`, 'success');
+            }
+        },
         deleteClient: (id: string) => {
             if (inventoryItems.some(i => i.destinationClientId === id || i.dispatchClientId === id)) {
                  notification?.addNotification('لا يمكن حذف العميل لأنه مرتبط بحركات مخزون.', 'error');

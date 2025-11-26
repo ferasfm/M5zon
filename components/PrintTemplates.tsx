@@ -239,6 +239,24 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
     const selectedSupplier = getSupplierById(selectedSupplierId);
     const grandTotal = sortedData ? sortedData.reduce((acc, group) => acc + group.totalPrice, 0) : 0;
 
+    // دالة لعرض الفترة بشكل جميل
+    const getPeriodText = () => {
+        if (!startDate && !endDate) return 'جميع الفترات';
+        
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            // إذا كانا في نفس الشهر والسنة
+            if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+                const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+                return `شهر ${monthNames[start.getMonth()]}`;
+            }
+        }
+        
+        return `من ${startDate || 'البداية'} إلى ${endDate || 'النهاية'}`;
+    };
+
     // Helper component for the report content to avoid duplication
     const ReportContent = () => (
         <div className="print-content" dir="rtl">
@@ -248,7 +266,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                 <div className="grid grid-cols-2 gap-4 mt-6 text-sm border p-4 rounded-md">
                     <div>
                         <p><strong className="font-semibold">تاريخ المطالبة:</strong> {formatDate(new Date())}</p>
-                        <p><strong className="font-semibold">الفترة:</strong> من {startDate || 'البداية'} إلى {endDate || 'النهاية'}</p>
+                        <p><strong className="font-semibold">الفترة:</strong> {getPeriodText()}</p>
                     </div>
                     <div className="text-left">
                         <p><strong className="font-semibold">إلى السيد/ة:</strong> {selectedSupplier?.name}</p>

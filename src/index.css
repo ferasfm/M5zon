@@ -38,3 +38,65 @@
     @apply bg-secondary text-slate-800 hover:bg-secondary-hover;
   }
 }
+
+/* Print Styles */
+@media print {
+  /* إخفاء كل شيء */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* إظهار محتوى الطباعة فقط */
+  .print-container,
+  .print-container * {
+    visibility: visible !important;
+    display: block !important;
+  }
+  
+  .print-container {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: white !important;
+  }
+  
+  /* إخفاء العناصر غير المطلوبة */
+  .no-print {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  
+  /* تحسين الطباعة */
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+  
+  /* إزالة الظلال */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  /* تأكد من ظهور الجداول */
+  table {
+    display: table !important;
+  }
+  
+  thead {
+    display: table-header-group !important;
+  }
+  
+  tbody {
+    display: table-row-group !important;
+  }
+  
+  tr {
+    display: table-row !important;
+  }
+  
+  td, th {
+    display: table-cell !important;
+  }
+}

@@ -521,7 +521,7 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                             </Button>
                         </div>
                     </div>
-                    <div className="print-container hidden">
+                    <div className="print-container" style={{ display: 'none' }}>
                         <DeliveryNote
                             client={lastDispatch.client}
                             date={lastDispatch.date}

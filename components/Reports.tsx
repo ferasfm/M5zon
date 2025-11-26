@@ -247,10 +247,11 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
 
             return true;
         });
+        // ترتيب من الأحدث إلى الأقدم حسب تاريخ الشراء
         setInvReportData(filteredItems.sort((a, b) => {
-            const productA = getProductById(a.productId)?.name || '';
-            const productB = getProductById(b.productId)?.name || '';
-            return productA.localeCompare(productB);
+            const dateA = a.purchaseDate ? new Date(a.purchaseDate).getTime() : 0;
+            const dateB = b.purchaseDate ? new Date(b.purchaseDate).getTime() : 0;
+            return dateB - dateA; // من الأحدث إلى الأقدم
         }));
     };
 
@@ -334,7 +335,9 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             return acc;
         }, {}));
 
-        setReceiveReportData(aggregated);
+        // ترتيب من الأحدث إلى الأقدم
+        const sortedAggregated = aggregated.sort((a, b) => b.purchaseDate.getTime() - a.purchaseDate.getTime());
+        setReceiveReportData(sortedAggregated);
     };
 
     const handleGenerateDispatchReport = () => {
@@ -379,7 +382,9 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             return acc;
         }, {}));
 
-        setDispatchReportData(aggregated);
+        // ترتيب من الأحدث إلى الأقدم
+        const sortedAggregated = aggregated.sort((a, b) => b.dispatchDate.getTime() - a.dispatchDate.getTime());
+        setDispatchReportData(sortedAggregated);
     };
 
     const sortedReceiveData = useMemo(() => {
