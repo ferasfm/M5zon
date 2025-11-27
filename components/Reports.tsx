@@ -85,7 +85,7 @@ const itemStatuses: { [key: string]: string } = {
 
 
 const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
-    const { inventoryItems, getProductById, suppliers, clients, provinces, areas, getSupplierById, getClientFullNameById, getItemLocationName } = inventory;
+    const { inventoryItems, getProductById, categories, suppliers, clients, provinces, areas, getSupplierById, getClientFullNameById, getItemLocationName } = inventory;
     const { getSetting } = useSettings();
     const [companyName, setCompanyName] = useState('نظام إدارة المخزون');
 
@@ -208,10 +208,9 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         setDispatchSelectedClient('all');
     };
 
-    const productCategories = useMemo(() => {
-        const categories = new Set(inventory.products.map(p => p.category));
-        return Array.from(categories);
-    }, [inventory.products]);
+    const activeCategories = useMemo(() => {
+        return categories.filter(c => c.isActive).sort((a, b) => a.displayOrder - b.displayOrder);
+    }, [categories]);
 
     const getItemLocationId = (item: InventoryItem): string | undefined => {
         return item.status === 'dispatched' ? item.dispatchClientId : item.destinationClientId;
@@ -244,7 +243,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             if (invSelectedStatus !== 'all' && item.status !== invSelectedStatus) return false;
 
             const product = getProductById(item.productId);
-            if (invSelectedCategory !== 'all' && product?.category !== invSelectedCategory) return false;
+            if (invSelectedCategory !== 'all' && product?.categoryId !== invSelectedCategory) return false;
 
             if (invSelectedClient !== 'all' && getItemLocationId(item) !== invSelectedClient) return false;
 
@@ -683,7 +682,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                             <label className="text-sm">فئة المنتج</label>
                             <select value={invSelectedCategory} onChange={e => setInvSelectedCategory(e.target.value)}>
                                 <option value="all">الكل</option>
-                                {productCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                                {activeCategories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
                             </select>
                         </div>
                         <div>
@@ -1181,7 +1180,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                 <div className="mt-4 text-sm p-4 bg-slate-50 rounded-md border">
                                     <h3 className="font-bold mb-2">معايير البحث:</h3>
                                     <div className="grid grid-cols-3 gap-x-4 gap-y-1">
-                                        <div><strong>الفئة:</strong> {invSelectedCategory === 'all' ? 'الكل' : invSelectedCategory}</div>
+                                        <div><strong>الفئة:</strong> {invSelectedCategory === 'all' ? 'الكل' : categories.find(c => c.id === invSelectedCategory)?.name || 'غير محدد'}</div>
                                         <div><strong>الحالة:</strong> {itemStatuses[invSelectedStatus]}</div>
                                         <div><strong>الموقع:</strong> {invSelectedClient === 'all' ? 'الكل' : getClientFullNameById(invSelectedClient)}</div>
                                     </div>

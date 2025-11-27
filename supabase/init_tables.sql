@@ -3,12 +3,26 @@
 -- Enables gen_random_uuid() if not already available
 create extension if not exists pgcrypto;
 
+-- CATEGORIES
+create table if not exists categories (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  description text,
+  color text default '#3B82F6',
+  icon text default '📦',
+  is_active boolean default true,
+  display_order integer default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 -- PRODUCTS
 create table if not exists products (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   sku text,
   category text,
+  category_id uuid references categories(id) on delete set null,
   standard_cost_price numeric default 0,
   has_warranty boolean default false,
   warranty_duration_value integer,
@@ -77,6 +91,19 @@ create table if not exists inventory_items (
 -- Helpful indexes
 create index if not exists idx_inventory_product_id on inventory_items(product_id);
 create index if not exists idx_inventory_status on inventory_items(status);
+create index if not exists idx_products_category_id on products(category_id);
+create index if not exists idx_categories_active on categories(is_active);
+
+-- إضافة بعض الفئات الافتراضية
+insert into categories (name, description, color, icon, display_order) values
+  ('إلكترونيات', 'أجهزة إلكترونية ومعدات تقنية', '#3B82F6', '💻', 1),
+  ('هواتف', 'هواتف ذكية وملحقاتها', '#8B5CF6', '📱', 2),
+  ('أجهزة كمبيوتر', 'حواسيب محمولة ومكتبية', '#06B6D4', '🖥️', 3),
+  ('طابعات', 'طابعات وماسحات ضوئية', '#F59E0B', '🖨️', 4),
+  ('أحبار', 'أحبار وخراطيش طابعات', '#EC4899', '🎨', 5),
+  ('ملحقات', 'ملحقات وإكسسوارات متنوعة', '#10B981', '🎧', 6),
+  ('أخرى', 'منتجات متنوعة', '#6B7280', '📦', 7)
+on conflict (name) do nothing;
 
 -- Small seed example (optional) — uncomment to run
 -- insert into products (name, sku, category, standard_cost_price, has_warranty, product_type) values ('Sample Product','SKU-100','General',100,true,'standard');

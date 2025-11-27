@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Product, ProductComponent } from '../types';
+import { Product, ProductComponent, Category } from '../types';
 import { Button } from './ui/Button';
 import { Icons } from './icons';
 import { convertArabicInput } from '../utils/converters';
@@ -9,22 +9,20 @@ interface ProductFormProps {
   product: Product | null;
   productTypeForCreation: 'standard' | 'bundle';
   products: Product[]; // For bundle component selection and SKU generation
+  categories: Category[]; // الفئات من قاعدة البيانات
   onSubmit: (productData: Omit<Product, 'id'> | Product) => void;
   onCancel: () => void;
 }
 
-const CATEGORIES: { [key: string]: string } = {
-  'Hardware': 'HW',
-  'Software': 'SW',
-  'Systems': 'SYS',
-  'Accessories': 'ACC',
-};
-
-const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreation, products, onSubmit, onCancel }) => {
+const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreation, products, categories, onSubmit, onCancel }) => {
+    const activeCategories = categories.filter(c => c.isActive);
+    const defaultCategoryId = activeCategories.length > 0 ? activeCategories[0].id : '';
+    
     const [formData, setFormData] = useState({
         name: '',
         sku: '',
-        category: Object.keys(CATEGORIES)[0], // Default to the first category
+        category: '', // النص القديم للتوافق
+        categoryId: defaultCategoryId, // المعرف الجديد
         standardCostPrice: 0,
         hasWarranty: false,
         warrantyDurationValue: 0,
@@ -35,10 +33,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
 
     useEffect(() => {
         if (product) {
+            const selectedCategory = categories.find(c => c.id === product.categoryId);
             setFormData({
                 name: product.name,
                 sku: product.sku,
-                category: product.category,
+                category: selectedCategory?.name || product.category || '',
+                categoryId: product.categoryId || '',
                 standardCostPrice: product.standardCostPrice,
                 hasWarranty: product.hasWarranty,
                 warrantyDurationValue: product.warrantyDurationValue || 0,
@@ -48,11 +48,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
             });
         } else {
             // Reset form for new entry
-            const initialCategory = Object.keys(CATEGORIES)[0];
+            const defaultCat = activeCategories.length > 0 ? activeCategories[0] : null;
             setFormData({
                 name: '',
                 sku: '',
-                category: initialCategory,
+                category: defaultCat?.name || '',
+                categoryId: defaultCat?.id || '',
                 standardCostPrice: 0,
                 hasWarranty: false,
                 warrantyDurationValue: 0,
@@ -61,10 +62,15 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
                 components: [],
             });
         }
-    }, [product, productTypeForCreation]);
+    }, [product, productTypeForCreation, categories]);
 
-    const handleCategoryChange = (newCategory: string) => {
-        setFormData(prev => ({ ...prev, category: newCategory }));
+    const handleCategoryChange = (newCategoryId: string) => {
+        const selectedCategory = categories.find(c => c.id === newCategoryId);
+        setFormData(prev => ({ 
+            ...prev, 
+            categoryId: newCategoryId,
+            category: selectedCategory?.name || ''
+        }));
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -151,9 +157,24 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
                     <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required />
                 </div>
                  <div>
-                    <label htmlFor="category" className="block text-sm font-medium text-slate-700 mb-1">الفئة</label>
-                    <select name="category" id="category" value={formData.category} onChange={(e) => handleCategoryChange(e.target.value)} required>
-                       {Object.keys(CATEGORIES).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    <label htmlFor="categoryId" className="block text-sm font-medium text-slate-700 mb-1">الفئة</label>
+                    <select 
+                        name="categoryId" 
+                        id="categoryId" 
+                        value={formData.categoryId} 
+                        onChange={(e) => handleCategoryChange(e.target.value)} 
+                        required
+                        className="w-full"
+                    >
+                        {activeCategories.length === 0 ? (
+                            <option value="">لا توجد فئات - أضف فئة من الإعدادات</option>
+                        ) : (
+                            activeCategories.map(cat => (
+                                <option key={cat.id} value={cat.id}>
+                                    {cat.icon} {cat.name}
+                                </option>
+                            ))
+                        )}
                     </select>
                 </div>
             </div>

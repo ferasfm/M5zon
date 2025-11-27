@@ -11,6 +11,7 @@ import AppSettingsPanel from './AppSettingsPanel';
 import SettingsTest from './SettingsTest';
 import DatabaseResetTest from './DatabaseResetTest';
 import ReasonsManager from './ReasonsManager';
+import CategoriesManager from './CategoriesManager';
 
 interface SettingsProps {
     inventory: UseInventoryReturn;
@@ -19,7 +20,7 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ inventory }) => {
     const { settings, wipeAllData } = inventory;
     const { getSetting, updateSetting } = useSettings();
-    const [activeTab, setActiveTab] = useState<'general' | 'reasons' | 'system' | 'data'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'categories' | 'reasons' | 'system' | 'data'>('general');
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [resetConfirmationText, setResetConfirmationText] = useState('');
     const [companyName, setCompanyName] = useState('');
@@ -92,6 +93,16 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                             }`}
                         >
                             ⚙️ إعدادات عامة
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('categories')}
+                            className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
+                                activeTab === 'categories' 
+                                ? 'border-primary text-primary' 
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            }`}
+                        >
+                            📂 إدارة الفئات
                         </button>
                         <button
                             onClick={() => setActiveTab('reasons')}
@@ -225,6 +236,11 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                     </CardContent>
                 </Card>
                 </>
+                )}
+
+                {/* Categories Manager Tab */}
+                {activeTab === 'categories' && (
+                <CategoriesManager inventory={inventory} />
                 )}
 
                 {/* Reasons Manager Tab */}

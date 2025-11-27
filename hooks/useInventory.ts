@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import type React from 'react';
-import { InventoryItem, Product, Supplier, Province, Area, Client, TransactionReason, UseInventoryReturn, NewItem, PriceAgreement } from '../types';
+import { InventoryItem, Product, Supplier, Province, Area, Client, TransactionReason, Category, UseInventoryReturn, NewItem, PriceAgreement } from '../types';
 import { useNotification } from '../contexts/NotificationContext';
 import { useSupabase } from '../contexts/SupabaseContext';
 import { appConfig as settings } from '../config';
@@ -10,15 +10,21 @@ export const useInventory = (): UseInventoryReturn | null => {
     const notification = useNotification();
 
     const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [areas, setAreas] = useState<Area[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
     const [transactionReasons, setTransactionReasons] = useState<TransactionReason[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadingMessage, setLoadingMessage] = useState('جاري الاتصال بقاعدة البيانات...');
 
     const fetchData = useCallback(async () => {
         if (!supabase) return;
+        
+        setIsLoading(true);
+        setLoadingMessage('جاري الاتصال بقاعدة البيانات...');
         
         const fetchTable = async (tableName: string, setter: React.Dispatch<any>) => {
             const { data, error } = await supabase.from(tableName).select('*');
@@ -66,7 +72,8 @@ export const useInventory = (): UseInventoryReturn | null => {
                         standardCostPrice: product.standard_cost_price,
                         warrantyDurationValue: product.warranty_duration_value,
                         warrantyDurationUnit: product.warranty_duration_unit,
-                        productType: product.product_type
+                        productType: product.product_type,
+                        categoryId: product.category_id
                     }));
                     setter(parsedData);
                 } else if (tableName === 'provinces' && data) {
@@ -106,15 +113,60 @@ export const useInventory = (): UseInventoryReturn | null => {
             }
         };
 
-        await Promise.all([
-            fetchTable('products', setProducts),
-            fetchTable('inventory_items', setInventoryItems),
-            fetchTable('suppliers', setSuppliers),
-            fetchTable('provinces', setProvinces),
-            fetchTable('areas', setAreas),
-            fetchTable('clients', setClients),
-            fetchReasons(),
-        ]);
+        // Fetch categories
+        const fetchCategories = async () => {
+            const { data, error } = await supabase.from('categories').select('*').order('display_order');
+            if (error) {
+                notification?.addNotification(`Failed to fetch categories: ${error.message}`, 'error');
+            } else if (data) {
+                const parsedData = data.map((cat: any) => ({
+                    id: cat.id,
+                    name: cat.name,
+                    description: cat.description,
+                    color: cat.color,
+                    icon: cat.icon,
+                    isActive: cat.is_active,
+                    displayOrder: cat.display_order
+                }));
+                setCategories(parsedData);
+            }
+        };
+
+        try {
+            // تحميل البيانات الأساسية أولاً (Priority Loading)
+            // المرحلة 1: البيانات الأساسية (الأسرع والأهم)
+            setLoadingMessage('جاري تحميل الإعدادات الأساسية...');
+            await Promise.all([
+                fetchCategories(),
+                fetchTable('provinces', setProvinces),
+            ]);
+
+            // المرحلة 2: البيانات المتوسطة
+            setLoadingMessage('جاري تحميل الموردين والمواقع...');
+            await Promise.all([
+                fetchTable('areas', setAreas),
+                fetchTable('suppliers', setSuppliers),
+                fetchReasons(),
+            ]);
+
+            // المرحلة 3: البيانات الثقيلة
+            setLoadingMessage('جاري تحميل المنتجات...');
+            await Promise.all([
+                fetchTable('products', setProducts),
+                fetchTable('clients', setClients),
+            ]);
+
+            // المرحلة 4: البيانات الأثقل (المخزون)
+            setLoadingMessage('جاري تحميل المخزون...');
+            await fetchTable('inventory_items', setInventoryItems);
+
+            setLoadingMessage('تم التحميل بنجاح!');
+            setIsLoading(false);
+        } catch (error) {
+            console.error('خطأ في تحميل البيانات:', error);
+            setLoadingMessage('حدث خطأ في تحميل البيانات');
+            setIsLoading(false);
+        }
     }, [supabase, notification]);
 
     useEffect(() => {
@@ -207,7 +259,8 @@ export const useInventory = (): UseInventoryReturn | null => {
             standard_cost_price: productData.standardCostPrice,
             warranty_duration_value: productData.warrantyDurationValue,
             warranty_duration_unit: productData.warrantyDurationUnit,
-            product_type: productData.productType
+            product_type: productData.productType,
+            category_id: productData.categoryId
         };
 
         // حذف الخصائص القديمة
@@ -216,12 +269,22 @@ export const useInventory = (): UseInventoryReturn | null => {
         delete dbProductData.warrantyDurationValue;
         delete dbProductData.warrantyDurationUnit;
         delete dbProductData.productType;
+        delete dbProductData.categoryId;
 
         const { data, error } = await supabase.from('products').insert([dbProductData]).select();
         if (error) {
             notification?.addNotification(`فشل إضافة المنتج: ${error.message}`, 'error');
         } else if (data) {
-            setProducts(prev => [...prev, data[0]]);
+            const parsedProduct = {
+                ...data[0],
+                hasWarranty: data[0].has_warranty,
+                standardCostPrice: data[0].standard_cost_price,
+                warrantyDurationValue: data[0].warranty_duration_value,
+                warrantyDurationUnit: data[0].warranty_duration_unit,
+                productType: data[0].product_type,
+                categoryId: data[0].category_id
+            };
+            setProducts(prev => [...prev, parsedProduct]);
             notification?.addNotification(`تمت إضافة المنتج "${data[0].name}" بنجاح.`, 'success');
         }
     };
@@ -235,7 +298,8 @@ export const useInventory = (): UseInventoryReturn | null => {
             standard_cost_price: updatedProduct.standardCostPrice,
             warranty_duration_value: updatedProduct.warrantyDurationValue,
             warranty_duration_unit: updatedProduct.warrantyDurationUnit,
-            product_type: updatedProduct.productType
+            product_type: updatedProduct.productType,
+            category_id: updatedProduct.categoryId
         };
 
         // حذف الخصائص القديمة
@@ -244,12 +308,22 @@ export const useInventory = (): UseInventoryReturn | null => {
         delete dbProductData.warrantyDurationValue;
         delete dbProductData.warrantyDurationUnit;
         delete dbProductData.productType;
+        delete dbProductData.categoryId;
 
         const { data, error } = await supabase.from('products').update(dbProductData).eq('id', updatedProduct.id).select();
         if (error) {
             notification?.addNotification(`فشل تحديث المنتج: ${error.message}`, 'error');
         } else if(data) {
-            setProducts(prev => prev.map(p => p.id === updatedProduct.id ? data[0] : p));
+            const parsedProduct = {
+                ...data[0],
+                hasWarranty: data[0].has_warranty,
+                standardCostPrice: data[0].standard_cost_price,
+                warrantyDurationValue: data[0].warranty_duration_value,
+                warrantyDurationUnit: data[0].warranty_duration_unit,
+                productType: data[0].product_type,
+                categoryId: data[0].category_id
+            };
+            setProducts(prev => prev.map(p => p.id === updatedProduct.id ? parsedProduct : p));
             notification?.addNotification(`تم تحديث المنتج "${updatedProduct.name}" بنجاح.`, 'success');
         }
     };
@@ -737,17 +811,101 @@ export const useInventory = (): UseInventoryReturn | null => {
         getScrapReasons
     }), [getPurchaseReasons, getDispatchReasons, getScrapReasons]);
 
+    // --- CATEGORIES API ---
+    const getCategoryById = useCallback((categoryId: string) => categories.find(c => c.id === categoryId), [categories]);
+    
+    const getActiveCategories = useCallback(() => {
+        return categories.filter(c => c.isActive).sort((a, b) => a.displayOrder - b.displayOrder);
+    }, [categories]);
+
+    const addCategory = async (name: string, description?: string, color?: string, icon?: string) => {
+        if (!supabase) return;
+        const maxOrder = categories.length > 0 ? Math.max(...categories.map(c => c.displayOrder)) : 0;
+        const { data, error } = await supabase.from('categories').insert({
+            name,
+            description,
+            color: color || '#3B82F6',
+            icon: icon || '📦',
+            is_active: true,
+            display_order: maxOrder + 1
+        }).select();
+        
+        if (error) {
+            notification?.addNotification(`فشل إضافة الفئة: ${error.message}`, 'error');
+        } else if (data && data[0]) {
+            const newCategory: Category = {
+                id: data[0].id,
+                name: data[0].name,
+                description: data[0].description,
+                color: data[0].color,
+                icon: data[0].icon,
+                isActive: data[0].is_active,
+                displayOrder: data[0].display_order
+            };
+            setCategories(prev => [...prev, newCategory]);
+            notification?.addNotification('تم إضافة الفئة بنجاح', 'success');
+        }
+    };
+
+    const updateCategory = async (category: Category) => {
+        if (!supabase) return;
+        const { error } = await supabase.from('categories').update({
+            name: category.name,
+            description: category.description,
+            color: category.color,
+            icon: category.icon,
+            is_active: category.isActive,
+            display_order: category.displayOrder
+        }).eq('id', category.id);
+        
+        if (error) {
+            notification?.addNotification(`فشل تحديث الفئة: ${error.message}`, 'error');
+        } else {
+            setCategories(prev => prev.map(c => c.id === category.id ? category : c));
+            notification?.addNotification('تم تحديث الفئة بنجاح', 'success');
+        }
+    };
+
+    const deleteCategory = async (id: string) => {
+        if (!supabase) return;
+        // التحقق من وجود منتجات مرتبطة بهذه الفئة
+        if (products.some(p => p.categoryId === id)) {
+            notification?.addNotification('لا يمكن حذف الفئة لأنها مرتبطة بمنتجات. قم بتغيير فئة المنتجات أولاً.', 'error');
+            return;
+        }
+        
+        const { error } = await supabase.from('categories').delete().eq('id', id);
+        
+        if (error) {
+            notification?.addNotification(`فشل حذف الفئة: ${error.message}`, 'error');
+        } else {
+            setCategories(prev => prev.filter(c => c.id !== id));
+            notification?.addNotification('تم حذف الفئة بنجاح', 'success');
+        }
+    };
+
+    const categoriesApi = useMemo(() => ({
+        addCategory,
+        updateCategory,
+        deleteCategory,
+        getCategoryById,
+        getActiveCategories
+    }), [getCategoryById, getActiveCategories]);
+
     if (!supabase) return null;
 
     return useMemo(() => ({
         inventoryItems,
         products,
+        categories,
         suppliers,
         provinces,
         areas,
         clients,
         transactionReasons,
         settings,
+        isLoading,
+        loadingMessage,
         wipeAllData,
         addProduct,
         updateProduct,
@@ -769,9 +927,10 @@ export const useInventory = (): UseInventoryReturn | null => {
         areasApi,
         clientsApi,
         reasonsApi,
+        categoriesApi,
         getAggregatedInventoryValue,
         getLowStockProducts,
         getExpiringWarranties,
         getScrappedValueLast30Days,
-    }), [inventoryItems, products, suppliers, provinces, areas, clients, getProductById, findItemBySerial, getItemLocationName, getSupplierById, getClientById, getClientFullNameById, provincesApi, areasApi, clientsApi]);
+    }), [inventoryItems, products, categories, suppliers, provinces, areas, clients, isLoading, loadingMessage, getProductById, findItemBySerial, getItemLocationName, getSupplierById, getClientById, getClientFullNameById, provincesApi, areasApi, clientsApi, categoriesApi]);
 };

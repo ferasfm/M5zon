@@ -19,9 +19,10 @@ interface FinancialClaimRow {
     quantity: number;
     unitPrice: number; // average cost
     totalPrice: number;
+    notes?: string; // ملاحظات اختيارية
 }
 
-type ColumnKey = 'product' | 'quantity' | 'unitPrice' | 'totalPrice' | 'reason' | 'client';
+type ColumnKey = 'product' | 'quantity' | 'unitPrice' | 'totalPrice' | 'reason' | 'client' | 'notes';
 
 interface ColumnConfig {
     key: ColumnKey;
@@ -36,6 +37,7 @@ const initialColumns: ColumnConfig[] = [
     { key: 'totalPrice', label: 'التكلفة الكلية', visible: true },
     { key: 'reason', label: 'سبب الشراء', visible: true },
     { key: 'client', label: 'العميل / الموقع', visible: true },
+    { key: 'notes', label: 'ملاحظات', visible: false },
 ];
 
 const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
@@ -54,6 +56,8 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
     const [sortConfig, setSortConfig] = useState<{ key: ColumnKey, direction: 'asc' | 'desc' } | null>(null);
     const [isColumnsModalOpen, setIsColumnsModalOpen] = useState(false);
     const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
+    const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
+    const [productNotes, setProductNotes] = useState<{ [key: string]: string }>({});
 
     // New state for print settings
     const [printSettings, setPrintSettings] = useState({
@@ -133,6 +137,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
             }
             
             if (!acc[key]) {
+                const productKey = item.bundleGroupId ? `bundle-${item.bundleGroupId}` : item.productId;
                 acc[key] = {
                     productId: item.bundleGroupId ? 'bundle' : item.productId,
                     productName: productName,
@@ -142,6 +147,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                     quantity: item.bundleGroupId ? 1 : 0, // الحزمة تعتبر وحدة واحدة
                     unitPrice: unitPrice,
                     totalPrice: 0,
+                    notes: productNotes[productKey] || '',
                     items: []
                 };
             }
@@ -338,6 +344,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                                                 totalPrice: formatCurrency(row.totalPrice),
                                                 reason: row.purchaseReason,
                                                 client: row.clientName,
+                                                notes: <span className="text-xs text-slate-600">{row.notes || '-'}</span>,
                                             }[col.key]
                                         }
                                     </td>
@@ -397,6 +404,10 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                     <CardHeader className="flex justify-between items-center no-print">
                         <CardTitle>2. معاينة وتخصيص المطالبة</CardTitle>
                         <div className="flex gap-2">
+                            <Button variant="secondary" onClick={() => setIsNotesModalOpen(true)}>
+                                <Icons.FileText className="h-4 w-4 ml-2" />
+                                إضافة ملاحظات
+                            </Button>
                             <Button variant="secondary" onClick={() => setIsSettingsModalOpen(true)}>إعدادات الطباعة</Button>
                             <Button variant="secondary" onClick={() => setIsColumnsModalOpen(true)}>تخصيص الأعمدة</Button>
                             <Button variant="secondary" onClick={handleExport}>تصدير CSV</Button>
@@ -408,6 +419,47 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                     </CardContent>
                 </Card>
             )}
+
+            <Modal isOpen={isNotesModalOpen} onClose={() => setIsNotesModalOpen(false)} title="إضافة ملاحظات للمنتجات">
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                    <p className="text-sm text-slate-600 mb-4">أضف ملاحظات اختيارية لكل منتج. ستظهر في عمود "ملاحظات" إذا قمت بتفعيله.</p>
+                    {sortedData && sortedData.map((row) => {
+                        const productKey = row.productId === 'bundle' ? `bundle-${row.productName}` : row.productId;
+                        return (
+                            <div key={productKey} className="border rounded-lg p-4 bg-slate-50">
+                                <div className="flex items-start gap-3 mb-2">
+                                    <div className="flex-1">
+                                        <h4 className="font-semibold text-dark">{row.productName}</h4>
+                                        <p className="text-xs text-slate-500">باركود: {row.productSku}</p>
+                                    </div>
+                                    <span className="text-sm text-slate-600">الكمية: {row.quantity}</span>
+                                </div>
+                                <textarea
+                                    value={productNotes[productKey] || ''}
+                                    onChange={(e) => {
+                                        setProductNotes(prev => ({
+                                            ...prev,
+                                            [productKey]: e.target.value
+                                        }));
+                                        // تحديث البيانات مباشرة
+                                        setReportData(prev => prev ? prev.map(item => 
+                                            (item.productId === row.productId && item.productName === row.productName) 
+                                                ? { ...item, notes: e.target.value }
+                                                : item
+                                        ) : null);
+                                    }}
+                                    placeholder="أدخل ملاحظات اختيارية لهذا المنتج..."
+                                    className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                                    rows={2}
+                                />
+                            </div>
+                        );
+                    })}
+                </div>
+                <div className="flex justify-end pt-4 mt-4 border-t">
+                    <Button onClick={() => setIsNotesModalOpen(false)}>تم</Button>
+                </div>
+            </Modal>
 
             <Modal isOpen={isColumnsModalOpen} onClose={() => setIsColumnsModalOpen(false)} title="تخصيص أعمدة التقرير">
                 <div className="space-y-2">

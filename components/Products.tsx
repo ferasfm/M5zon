@@ -10,7 +10,7 @@ import { convertArabicInput } from '../utils/converters';
 import { formatCurrency } from '../utils/formatters';
 
 const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
-    const { products, addProduct, updateProduct, deleteProduct, inventoryItems, getProductById } = inventory;
+    const { products, categories, addProduct, updateProduct, deleteProduct, inventoryItems, getProductById } = inventory;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -146,7 +146,26 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
                                     <tr key={product.id} className="bg-white border-b border-slate-200 hover:bg-slate-50">
                                         <td className="px-4 py-3 font-medium">{product.name}</td>
                                         <td className="px-4 py-3 font-mono">{product.sku}</td>
-                                        <td className="px-4 py-3">{product.category}</td>
+                                        <td className="px-4 py-3">
+                                            {(() => {
+                                                const category = categories.find(c => c.id === product.categoryId);
+                                                if (category) {
+                                                    return (
+                                                        <span 
+                                                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium"
+                                                            style={{ 
+                                                                backgroundColor: category.color + '20',
+                                                                color: category.color
+                                                            }}
+                                                        >
+                                                            <span>{category.icon}</span>
+                                                            <span>{category.name}</span>
+                                                        </span>
+                                                    );
+                                                }
+                                                return <span className="text-slate-400">{product.category || 'غير محدد'}</span>;
+                                            })()}
+                                        </td>
                                         <td className="px-4 py-3">{formatCurrency(product.standardCostPrice)}</td>
                                         <td className="px-4 py-3 font-bold">{getStockCount(product.id)}</td>
                                         <td className="px-4 py-3">
@@ -230,6 +249,7 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
                     product={editingProduct}
                     productTypeForCreation={productTypeForCreation}
                     products={products}
+                    categories={categories}
                     onSubmit={handleSubmit}
                     onCancel={closeModal}
                 />

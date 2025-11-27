@@ -5,11 +5,22 @@ export interface ProductComponent {
   quantity: number;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  icon: string;
+  isActive: boolean;
+  displayOrder: number;
+}
+
 export interface Product {
   id: string;
   name: string;
   sku: string;
-  category: string;
+  category: string; // النص القديم للتوافق
+  categoryId?: string; // المعرف الجديد
   standardCostPrice: number;
   hasWarranty: boolean;
   warrantyDurationValue?: number;
@@ -95,12 +106,17 @@ export interface UseInventoryReturn {
   // Data
   inventoryItems: InventoryItem[];
   products: Product[];
+  categories: Category[];
   suppliers: Supplier[];
   provinces: Province[];
   areas: Area[];
   clients: Client[];
   transactionReasons: TransactionReason[];
   settings: AppSettings;
+  
+  // Loading State
+  isLoading: boolean;
+  loadingMessage: string;
 
   // Settings
   wipeAllData: () => void;
@@ -153,6 +169,15 @@ export interface UseInventoryReturn {
     getPurchaseReasons: () => TransactionReason[];
     getDispatchReasons: () => TransactionReason[];
     getScrapReasons: () => TransactionReason[];
+  };
+  
+  // Categories
+  categoriesApi: {
+    addCategory: (name: string, description?: string, color?: string, icon?: string) => Promise<void>;
+    updateCategory: (category: Category) => Promise<void>;
+    deleteCategory: (id: string) => Promise<void>;
+    getCategoryById: (id: string) => Category | undefined;
+    getActiveCategories: () => Category[];
   };
   
   // Dashboard Metrics

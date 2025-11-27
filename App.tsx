@@ -12,6 +12,7 @@ import Reports from './components/Reports';
 import PrintTemplates from './components/PrintTemplates';
 import Settings from './components/Settings';
 import ConnectionStatus from './components/ConnectionStatus';
+import LoadingScreen from './components/LoadingScreen';
 import { Page } from './types';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { SupabaseProvider, useSupabase } from './contexts/SupabaseContext';
@@ -23,10 +24,12 @@ const MainApp: React.FC = () => {
     const inventory = useInventory();
     const [currentPage, setCurrentPage] = useState<Page>('dashboard');
 
+    // عرض شاشة التحميل
+    if (!inventory || inventory.isLoading) {
+        return <LoadingScreen message={inventory?.loadingMessage || 'جاري الاتصال بقاعدة البيانات...'} />;
+    }
+
     const renderPage = () => {
-        if (!inventory) {
-             return <div className="flex items-center justify-center h-full"><p>جاري تحميل البيانات...</p></div>;
-        }
         switch (currentPage) {
             case 'dashboard':
                 return <Dashboard inventory={inventory} />;
