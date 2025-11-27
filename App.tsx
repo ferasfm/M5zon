@@ -25,9 +25,14 @@ const MainApp: React.FC = () => {
     const inventory = useInventory();
     const [currentPage, setCurrentPage] = useState<Page>('dashboard');
 
-    // عرض شاشة التحميل
-    if (!inventory || inventory.isLoading) {
-        return <LoadingScreen message={inventory?.loadingMessage || 'جاري الاتصال بقاعدة البيانات...'} />;
+    // عرض شاشة التحميل فقط عند التحميل الأولي (عند بدء التطبيق)
+    if (!inventory) {
+        return <LoadingScreen message="جاري الاتصال بقاعدة البيانات..." />;
+    }
+    
+    // بعد التحميل الأولي، نستخدم Toast للإشعارات بدلاً من شاشة التحميل الكاملة
+    if (inventory.isLoading && inventory.loadingMessage === 'جاري الاتصال بقاعدة البيانات...') {
+        return <LoadingScreen message={inventory.loadingMessage} />;
     }
 
     const renderPage = () => {
