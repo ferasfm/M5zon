@@ -22,6 +22,7 @@ interface AggregatedReceiveRow {
     unitPrice: number;
     totalPrice: number;
     purchaseDate: Date; // Keep the earliest date for sorting
+    notes?: string; // ملاحظات المنتج
 }
 
 // New type for aggregated dispatch report rows
@@ -38,7 +39,7 @@ interface AggregatedDispatchRow {
     dispatchDate: Date;
 }
 
-type ReceiveReportColumnKey = 'date' | 'product' | 'serial' | 'client' | 'supplier' | 'reason' | 'cost' | 'quantity' | 'totalPrice';
+type ReceiveReportColumnKey = 'date' | 'product' | 'serial' | 'client' | 'supplier' | 'reason' | 'cost' | 'quantity' | 'totalPrice' | 'notes';
 
 interface ReceiveColumnConfig {
     key: ReceiveReportColumnKey;
@@ -61,6 +62,7 @@ const initialReceiveColumns: ReceiveColumnConfig[] = [
     { key: 'totalPrice', label: 'سعر مجموع', visible: true },
     { key: 'reason', label: 'سبب الشراء', visible: true },
     { key: 'client', label: 'العميل / الموقع', visible: true },
+    { key: 'notes', label: 'ملاحظات', visible: true },
     { key: 'supplier', label: 'المورد', visible: true },
     { key: 'date', label: 'تاريخ الاستلام', visible: true },
     { key: 'serial', label: 'بار كود القطعة', visible: false }, // Hidden by default
@@ -115,6 +117,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
     const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
     const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
     const actionsMenuRef = useRef<HTMLDivElement>(null);
+    const [productNotes, setProductNotes] = useState<Record<string, string>>({});
 
     // State for dispatch report
     const [dispatchSelectedProvinceId, setDispatchSelectedProvinceId] = useState<string>('all');
@@ -378,7 +381,8 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                     quantity: item.bundleGroupId ? 1 : 0, // الحزمة تعتبر وحدة واحدة
                     unitPrice: unitPrice,
                     totalPrice: 0,
-                    purchaseDate: item.purchaseDate
+                    purchaseDate: item.purchaseDate,
+                    notes: '' // ملاحظات فارغة في البداية
                 };
             }
             
@@ -515,6 +519,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                     case 'client': aValue = a.clientName; bValue = b.clientName; break;
                     case 'supplier': aValue = a.supplierName; bValue = b.supplierName; break;
                     case 'date': aValue = a.purchaseDate; bValue = b.purchaseDate; break;
+                    case 'notes': aValue = a.notes || ''; bValue = b.notes || ''; break;
                     default: return 0;
                 }
                 if (aValue < bValue) return receiveSortConfig.direction === 'asc' ? -1 : 1;
@@ -531,6 +536,22 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             direction = 'desc';
         }
         setReceiveSortConfig({ key, direction });
+    };
+
+    const handleNoteChange = (rowKey: string, note: string) => {
+        setProductNotes(prev => ({
+            ...prev,
+            [rowKey]: note
+        }));
+        
+        // تحديث البيانات مباشرة
+        if (receiveReportData) {
+            setReceiveReportData(prev => 
+                prev ? prev.map(row => 
+                    row.key === rowKey ? { ...row, notes: note } : row
+                ) : null
+            );
+        }
     };
 
     const sortedDispatchData = useMemo(() => {
@@ -942,7 +963,16 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                                             client: row.clientName,
                                                             supplier: row.supplierName,
                                                             date: formatDate(row.purchaseDate),
-                                                            serial: "N/A"
+                                                            serial: "N/A",
+                                                            notes: (
+                                                                <textarea
+                                                                    value={row.notes || ''}
+                                                                    onChange={(e) => handleNoteChange(row.key, e.target.value)}
+                                                                    placeholder="أضف ملاحظة..."
+                                                                    className="w-full min-h-[60px] p-2 text-sm border rounded resize-y"
+                                                                    rows={2}
+                                                                />
+                                                            )
                                                         } as Record<ReceiveReportColumnKey, ReactNode>)[col.key]
                                                     }
                                                 </td>
@@ -1329,7 +1359,8 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                                                 client: row.clientName,
                                                                 supplier: row.supplierName,
                                                                 date: formatDate(row.purchaseDate),
-                                                                serial: "N/A"
+                                                                serial: "N/A",
+                                                                notes: row.notes ? <div className="text-sm whitespace-pre-wrap">{row.notes}</div> : <span className="text-slate-400">-</span>
                                                             } as Record<ReceiveReportColumnKey, ReactNode>)[col.key]
                                                         }
                                                     </td>
