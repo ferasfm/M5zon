@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard';
 import Products from './components/Products';
 import Receiving from './components/Receiving';
 import Dispatching from './components/Dispatching';
+import DispatchManagement from './components/DispatchManagement';
 import Scrapping from './components/Scrapping';
 import Suppliers from './components/Suppliers';
 import Locations from './components/Locations';
@@ -39,6 +40,8 @@ const MainApp: React.FC = () => {
                 return <Receiving inventory={inventory} />;
             case 'dispatching':
                 return <Dispatching inventory={inventory} />;
+            case 'dispatch_management':
+                return <DispatchManagement inventory={inventory} />;
             case 'scrapping':
                 return <Scrapping inventory={inventory} />;
             case 'suppliers':

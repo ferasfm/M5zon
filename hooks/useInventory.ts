@@ -458,6 +458,121 @@ export const useInventory = (): UseInventoryReturn | null => {
         }
     };
 
+    const undoDispatch = async (itemIds: string[]): Promise<boolean> => {
+        if (!supabase) return false;
+        
+        // التحقق من أن جميع القطع في حالة dispatched
+        const itemsToUndo = inventoryItems.filter(item => itemIds.includes(item.id));
+        const nonDispatchedItems = itemsToUndo.filter(item => item.status !== 'dispatched');
+        
+        if (nonDispatchedItems.length > 0) {
+            notification?.addNotification('بعض القطع المحددة ليست في حالة "مصروفة". لا يمكن إلغاء التسليم.', 'error');
+            return false;
+        }
+        
+        const updates = {
+            status: 'in_stock',
+            dispatch_client_id: null,
+            dispatch_date: null,
+            dispatch_reason: null,
+            dispatch_notes: null,
+            dispatch_reference: null
+        };
+        
+        const { data, error } = await supabase.from('inventory_items').update(updates).in('id', itemIds).select();
+        
+        if (error) {
+            notification?.addNotification(`فشل إلغاء التسليم: ${error.message}`, 'error');
+            return false;
+        } else if (data) {
+            setInventoryItems(prev => prev.map(item => {
+                const updatedItem = data.find(d => d.id === item.id);
+                if (!updatedItem) return item;
+                return {
+                    ...updatedItem,
+                    purchaseDate: new Date(updatedItem.purchase_date),
+                    dispatchDate: undefined,
+                    scrapDate: updatedItem.scrap_date ? new Date(updatedItem.scrap_date) : undefined,
+                    warrantyEndDate: updatedItem.warranty_end_date ? new Date(updatedItem.warranty_end_date) : undefined,
+                    productId: updatedItem.product_id,
+                    costPrice: updatedItem.cost_price,
+                    supplierId: updatedItem.supplier_id,
+                    destinationClientId: updatedItem.destination_client_id,
+                    dispatchClientId: undefined,
+                    purchaseReason: updatedItem.purchase_reason,
+                    dispatchReason: undefined,
+                    dispatchNotes: undefined,
+                    dispatchReference: undefined,
+                    scrapReason: updatedItem.scrap_reason,
+                    scrapNotes: updatedItem.scrap_notes,
+                    serialNumber: updatedItem.serial_number,
+                    bundleGroupId: updatedItem.bundle_group_id,
+                    bundleName: updatedItem.bundle_name
+                };
+            }));
+            notification?.addNotification(`تم إلغاء تسليم ${itemIds.length} قطعة بنجاح وإرجاعها للمخزون.`, 'success');
+            return true;
+        }
+        return false;
+    };
+
+    const editDispatch = async (itemIds: string[], updates: { dispatchClientId?: string; dispatchDate?: Date; dispatchReason?: string; dispatchNotes?: string; dispatchReference?: string }): Promise<boolean> => {
+        if (!supabase) return false;
+        
+        // التحقق من أن جميع القطع في حالة dispatched
+        const itemsToEdit = inventoryItems.filter(item => itemIds.includes(item.id));
+        const nonDispatchedItems = itemsToEdit.filter(item => item.status !== 'dispatched');
+        
+        if (nonDispatchedItems.length > 0) {
+            notification?.addNotification('بعض القطع المحددة ليست في حالة "مصروفة". لا يمكن تعديل التسليم.', 'error');
+            return false;
+        }
+        
+        // بناء كائن التحديثات فقط للحقول المحددة
+        const dbUpdates: any = {};
+        if (updates.dispatchClientId !== undefined) dbUpdates.dispatch_client_id = updates.dispatchClientId;
+        if (updates.dispatchDate !== undefined) dbUpdates.dispatch_date = updates.dispatchDate;
+        if (updates.dispatchReason !== undefined) dbUpdates.dispatch_reason = updates.dispatchReason;
+        if (updates.dispatchNotes !== undefined) dbUpdates.dispatch_notes = updates.dispatchNotes;
+        if (updates.dispatchReference !== undefined) dbUpdates.dispatch_reference = updates.dispatchReference;
+        
+        const { data, error } = await supabase.from('inventory_items').update(dbUpdates).in('id', itemIds).select();
+        
+        if (error) {
+            notification?.addNotification(`فشل تعديل التسليم: ${error.message}`, 'error');
+            return false;
+        } else if (data) {
+            setInventoryItems(prev => prev.map(item => {
+                const updatedItem = data.find(d => d.id === item.id);
+                if (!updatedItem) return item;
+                return {
+                    ...updatedItem,
+                    purchaseDate: new Date(updatedItem.purchase_date),
+                    dispatchDate: updatedItem.dispatch_date ? new Date(updatedItem.dispatch_date) : undefined,
+                    scrapDate: updatedItem.scrap_date ? new Date(updatedItem.scrap_date) : undefined,
+                    warrantyEndDate: updatedItem.warranty_end_date ? new Date(updatedItem.warranty_end_date) : undefined,
+                    productId: updatedItem.product_id,
+                    costPrice: updatedItem.cost_price,
+                    supplierId: updatedItem.supplier_id,
+                    destinationClientId: updatedItem.destination_client_id,
+                    dispatchClientId: updatedItem.dispatch_client_id,
+                    purchaseReason: updatedItem.purchase_reason,
+                    dispatchReason: updatedItem.dispatch_reason,
+                    dispatchNotes: updatedItem.dispatch_notes,
+                    dispatchReference: updatedItem.dispatch_reference,
+                    scrapReason: updatedItem.scrap_reason,
+                    scrapNotes: updatedItem.scrap_notes,
+                    serialNumber: updatedItem.serial_number,
+                    bundleGroupId: updatedItem.bundle_group_id,
+                    bundleName: updatedItem.bundle_name
+                };
+            }));
+            notification?.addNotification(`تم تعديل بيانات تسليم ${itemIds.length} قطعة بنجاح.`, 'success');
+            return true;
+        }
+        return false;
+    };
+
     const scrapItems = async (itemIds: string[], reason: string, notes?: string) => {
         if (!supabase) return;
         const updates = {
@@ -913,6 +1028,8 @@ export const useInventory = (): UseInventoryReturn | null => {
         getProductById,
         receiveItems,
         dispatchItems,
+        undoDispatch,
+        editDispatch,
         scrapItems,
         findItemBySerial,
         getItemLocationName,

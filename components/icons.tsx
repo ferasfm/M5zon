@@ -131,4 +131,10 @@ export const Icons = {
     Save: (props: React.SVGProps<SVGSVGElement>) => (
         <Icon {...props}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></Icon>
     ),
+    Undo: (props: React.SVGProps<SVGSVGElement>) => (
+        <Icon {...props}><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></Icon>
+    ),
+    Check: (props: React.SVGProps<SVGSVGElement>) => (
+        <Icon {...props}><polyline points="20 6 9 17 4 12"></polyline></Icon>
+    ),
 };

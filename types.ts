@@ -95,7 +95,7 @@ export interface TransactionReason {
     displayOrder: number;
 }
 
-export type Page = 'dashboard' | 'products' | 'inventory' | 'receiving' | 'dispatching' | 'scrapping' | 'suppliers' | 'locations' | 'reports' | 'print_templates' | 'settings';
+export type Page = 'dashboard' | 'products' | 'inventory' | 'receiving' | 'dispatching' | 'dispatch_management' | 'scrapping' | 'suppliers' | 'locations' | 'reports' | 'print_templates' | 'settings';
 
 export interface AppSettings {
   lowStockThreshold: number;
@@ -130,6 +130,8 @@ export interface UseInventoryReturn {
   // Inventory Items
   receiveItems: (items: NewItem[]) => Promise<boolean>;
   dispatchItems: (itemIds: string[], dispatchClientId: string, dispatchDate: Date, reason: string, notes?: string, reference?: string) => void;
+  undoDispatch: (itemIds: string[]) => Promise<boolean>;
+  editDispatch: (itemIds: string[], updates: { dispatchClientId?: string; dispatchDate?: Date; dispatchReason?: string; dispatchNotes?: string; dispatchReference?: string }) => Promise<boolean>;
   scrapItems: (itemIds: string[], reason: string, notes?: string) => void;
   findItemBySerial: (serial: string) => InventoryItem | undefined;
   getItemLocationName: (item: InventoryItem) => string;

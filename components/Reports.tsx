@@ -245,7 +245,24 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             const product = getProductById(item.productId);
             if (invSelectedCategory !== 'all' && product?.categoryId !== invSelectedCategory) return false;
 
-            if (invSelectedClient !== 'all' && getItemLocationId(item) !== invSelectedClient) return false;
+            // تصفية حسب الموقع (محافظة/منطقة/عميل)
+            const itemLocationId = getItemLocationId(item);
+            
+            // إذا تم اختيار عميل محدد
+            if (invSelectedClient !== 'all') {
+                if (itemLocationId !== invSelectedClient) return false;
+            }
+            // إذا تم اختيار منطقة (بدون عميل محدد)
+            else if (invSelectedAreaId !== 'all') {
+                const itemClient = clients.find(c => c.id === itemLocationId);
+                if (itemClient?.areaId !== invSelectedAreaId) return false;
+            }
+            // إذا تم اختيار محافظة (بدون منطقة أو عميل)
+            else if (invSelectedProvinceId !== 'all') {
+                const itemClient = clients.find(c => c.id === itemLocationId);
+                const itemArea = areas.find(a => a.id === itemClient?.areaId);
+                if (itemArea?.provinceId !== invSelectedProvinceId) return false;
+            }
 
             return true;
         });
@@ -302,7 +319,23 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                 if (purchaseDate > end) return false;
             }
             if (receiveSelectedSupplier !== 'all' && item.supplierId !== receiveSelectedSupplier) return false;
-            if (receiveSelectedClient !== 'all' && item.destinationClientId !== receiveSelectedClient) return false;
+            
+            // تصفية حسب الموقع (محافظة/منطقة/عميل)
+            // إذا تم اختيار عميل محدد
+            if (receiveSelectedClient !== 'all') {
+                if (item.destinationClientId !== receiveSelectedClient) return false;
+            }
+            // إذا تم اختيار منطقة (بدون عميل محدد)
+            else if (receiveSelectedAreaId !== 'all') {
+                const itemClient = clients.find(c => c.id === item.destinationClientId);
+                if (itemClient?.areaId !== receiveSelectedAreaId) return false;
+            }
+            // إذا تم اختيار محافظة (بدون منطقة أو عميل)
+            else if (receiveSelectedProvinceId !== 'all') {
+                const itemClient = clients.find(c => c.id === item.destinationClientId);
+                const itemArea = areas.find(a => a.id === itemClient?.areaId);
+                if (itemArea?.provinceId !== receiveSelectedProvinceId) return false;
+            }
 
             return true;
         });
@@ -385,7 +418,23 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                 end.setHours(23, 59, 59, 999);
                 if (dispatchDate > end) return false;
             }
-            if (dispatchSelectedClient !== 'all' && item.dispatchClientId !== dispatchSelectedClient) return false;
+            
+            // تصفية حسب الموقع (محافظة/منطقة/عميل)
+            // إذا تم اختيار عميل محدد
+            if (dispatchSelectedClient !== 'all') {
+                if (item.dispatchClientId !== dispatchSelectedClient) return false;
+            }
+            // إذا تم اختيار منطقة (بدون عميل محدد)
+            else if (dispatchSelectedAreaId !== 'all') {
+                const itemClient = clients.find(c => c.id === item.dispatchClientId);
+                if (itemClient?.areaId !== dispatchSelectedAreaId) return false;
+            }
+            // إذا تم اختيار محافظة (بدون منطقة أو عميل)
+            else if (dispatchSelectedProvinceId !== 'all') {
+                const itemClient = clients.find(c => c.id === item.dispatchClientId);
+                const itemArea = areas.find(a => a.id === itemClient?.areaId);
+                if (itemArea?.provinceId !== dispatchSelectedProvinceId) return false;
+            }
 
             return true;
         });

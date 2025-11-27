@@ -26,6 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
         { type: 'divider', label: 'الحركات' },
         { id: 'receiving', label: 'استلام بضاعة', icon: <Icons.Receiving className="h-5 w-5" /> },
         { id: 'dispatching', label: 'صرف بضاعة', icon: <Icons.Dispatching className="h-5 w-5" /> },
+        { id: 'dispatch_management', label: 'إدارة التسليمات', icon: <Icons.Edit className="h-5 w-5" /> },
         { id: 'scrapping', label: 'إتلاف بضاعة', icon: <Icons.Trash2 className="h-5 w-5" /> },
         { type: 'divider', label: 'الجهات' },
         { id: 'suppliers', label: 'الموردون', icon: <Icons.Suppliers className="h-5 w-5" /> },
