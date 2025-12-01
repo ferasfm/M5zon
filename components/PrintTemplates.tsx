@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { UseInventoryReturn, InventoryItem, Supplier } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
@@ -173,12 +172,167 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
     };
 
     const handlePrint = () => {
-        const afterPrintHandler = () => {
-            setIsPrintPreviewOpen(false); // Close modal after printing/canceling
-            window.removeEventListener('afterprint', afterPrintHandler);
-        };
-        window.addEventListener('afterprint', afterPrintHandler);
-        window.print();
+        if (!sortedData || !selectedSupplier) return;
+
+        // إنشاء محتوى HTML للطباعة
+        const printContent = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>${printSettings.title}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Tajawal', Arial, sans-serif; 
+            direction: rtl; 
+            padding: 20px;
+            background: white;
+        }
+        .print-header { margin-bottom: 30px; text-align: center; }
+        .print-header h2 { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+        .print-header p { font-size: 14px; color: #666; margin: 5px 0; }
+        .header-info { 
+            display: table; 
+            width: 100%; 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        .header-info > div { 
+            display: table-cell; 
+            width: 50%; 
+            vertical-align: top; 
+            font-size: 12px; 
+        }
+        .header-info .left { text-align: left; }
+        .header-info strong { font-weight: bold; }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 20px 0;
+        }
+        th, td { 
+            border: 1px solid #333; 
+            padding: 8px; 
+            text-align: right; 
+            font-size: 11px;
+        }
+        th { 
+            background-color: #f0f0f0; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            font-size: 10px;
+        }
+        tbody tr:nth-child(even) { background-color: #fafafa; }
+        .total-row { 
+            background-color: #f0f0f0 !important; 
+            font-weight: bold; 
+            font-size: 12px;
+        }
+        .print-footer { 
+            margin-top: 40px; 
+            text-align: center; 
+            font-size: 10px; 
+            color: #666;
+        }
+        .product-name { font-weight: bold; }
+        .product-sku { font-size: 9px; color: #666; display: block; margin-top: 2px; }
+        @media print {
+            @page { size: A4; margin: 10mm; }
+            body { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-header">
+        <h2>${printSettings.title}</h2>
+        <p>${printSettings.companyName}</p>
+        <div class="header-info">
+            <div>
+                <p><strong>تاريخ المطالبة:</strong> ${formatDate(new Date())}</p>
+                <p><strong>الفترة:</strong> ${getPeriodText()}</p>
+            </div>
+            <div class="left">
+                <p><strong>إلى السيد/ة:</strong> ${selectedSupplier.name}</p>
+                ${printSettings.showSupplierContact ? `<p><strong>هاتف:</strong> ${selectedSupplier.phone || 'غير متوفر'}</p>` : ''}
+            </div>
+        </div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                ${visibleColumns.map(col => `<th>${col.label}</th>`).join('')}
+            </tr>
+        </thead>
+        <tbody>
+            ${sortedData.map(row => `
+                <tr>
+                    ${visibleColumns.map(col => {
+                        let content: string | number = '';
+                        switch(col.key) {
+                            case 'product':
+                                content = `<span class="product-name">${row.productName}</span><span class="product-sku">باركود: ${row.productSku}</span>`;
+                                break;
+                            case 'quantity':
+                                content = String(row.quantity);
+                                break;
+                            case 'unitPrice':
+                                content = formatCurrency(row.unitPrice);
+                                break;
+                            case 'totalPrice':
+                                content = formatCurrency(row.totalPrice);
+                                break;
+                            case 'reason':
+                                content = row.purchaseReason;
+                                break;
+                            case 'client':
+                                content = row.clientName;
+                                break;
+                            case 'notes':
+                                content = row.notes || '-';
+                                break;
+                            default:
+                                content = '';
+                        }
+                        return `<td>${content}</td>`;
+                    }).join('')}
+                </tr>
+            `).join('')}
+            <tr class="total-row">
+                <td colspan="${Math.max(1, visibleColumns.length - 1)}" style="text-align: left;">الإجمالي النهائي للمطالبة</td>
+                <td>${formatCurrency(grandTotal)}</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div class="print-footer">
+        <p>${printSettings.footerText}</p>
+    </div>
+</body>
+</html>
+        `;
+
+        // فتح نافذة جديدة للطباعة
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            
+            // الانتظار حتى يتم تحميل المحتوى ثم الطباعة
+            printWindow.onload = () => {
+                printWindow.focus();
+                setTimeout(() => {
+                    printWindow.print();
+                    printWindow.close();
+                }, 250);
+            };
+        }
+        
+        setIsPrintPreviewOpen(false);
     };
 
     const sortedData = useMemo(() => {
@@ -528,11 +682,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                 </Modal>
             )}
 
-            {/* Hidden Print Portal - Always rendered when data exists, but only visible via CSS @media print */}
-            {sortedData && document.getElementById('print-root') && createPortal(
-                <ReportContent />,
-                document.getElementById('print-root')!
-            )}
+
         </div>
     );
 };

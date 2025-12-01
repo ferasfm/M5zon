@@ -16,73 +16,155 @@
         margin: 10mm;
       }
 
-      body {
-        margin: 0;
-        padding: 0;
-        background: white;
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
       }
 
-      /* Hide the main app completely */
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        width: 100% !important;
+        height: auto !important;
+      }
+
+      /* Hide main app */
       #root {
         display: none !important;
+        visibility: hidden !important;
       }
 
-      /* Show the print portal */
-      #print-root {
+      /* Show print content */
+      #print-content-wrapper {
         display: block !important;
-        position: relative;
-        width: 100%;
-        height: auto;
-        overflow: visible;
-        background: white;
-        font-family: 'Tajawal', sans-serif;
+        visibility: visible !important;
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: white !important;
+        font-family: 'Tajawal', sans-serif !important;
+        padding: 20px !important;
+        margin: 0 !important;
+        direction: rtl !important;
       }
 
-      /* Ensure table headers repeat, but not the main page header */
+      #print-content-wrapper * {
+        visibility: visible !important;
+      }
+
+      /* Print content styling */
+      #print-content-wrapper .print-content {
+        display: block !important;
+        width: 100% !important;
+      }
+
+      #print-content-wrapper .print-header {
+        margin-bottom: 30px !important;
+        text-align: center !important;
+      }
+
+      #print-content-wrapper .print-header h2 {
+        font-size: 24px !important;
+        font-weight: bold !important;
+        margin-bottom: 10px !important;
+        color: #000 !important;
+      }
+
+      #print-content-wrapper .print-header p {
+        font-size: 14px !important;
+        color: #666 !important;
+        margin: 5px 0 !important;
+      }
+
+      /* Grid for header info */
+      #print-content-wrapper .grid {
+        display: table !important;
+        width: 100% !important;
+        border: 1px solid #ddd !important;
+        padding: 15px !important;
+        margin-top: 20px !important;
+        border-radius: 5px !important;
+      }
+
+      #print-content-wrapper .grid > div {
+        display: table-cell !important;
+        width: 50% !important;
+        vertical-align: top !important;
+        font-size: 12px !important;
+      }
+
+      /* Ensure table headers repeat */
       thead {
-        display: table-header-group;
+        display: table-header-group !important;
+      }
+
+      tbody {
+        display: table-row-group !important;
       }
 
       tr {
-        page-break-inside: avoid;
+        page-break-inside: avoid !important;
       }
 
       /* General print styling */
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 20px;
+      #print-content-wrapper table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-bottom: 20px !important;
+        margin-top: 20px !important;
       }
 
-      th,
-      td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        text-align: right;
-        font-size: 12px;
+      #print-content-wrapper th,
+      #print-content-wrapper td {
+        border: 1px solid #333 !important;
+        padding: 8px !important;
+        text-align: right !important;
+        font-size: 11px !important;
+        color: #000 !important;
       }
 
-      th {
-        background-color: #f8f9fa !important;
-        -webkit-print-color-adjust: exact;
+      #print-content-wrapper th {
+        background-color: #f0f0f0 !important;
+        font-weight: bold !important;
+        text-transform: uppercase !important;
+        font-size: 10px !important;
       }
 
-      .print-header {
-        margin-bottom: 20px;
-        text-align: center;
+      #print-content-wrapper tbody tr {
+        background-color: white !important;
       }
 
-      .print-footer {
-        margin-top: 30px;
-        text-align: center;
-        font-size: 10px;
-        color: #666;
+      #print-content-wrapper tbody tr:nth-child(even) {
+        background-color: #fafafa !important;
       }
-    }
 
-    /* Hide print root on screen */
-    #print-root {
-      display: none;
+      #print-content-wrapper .print-footer {
+        margin-top: 40px !important;
+        text-align: center !important;
+        font-size: 10px !important;
+        color: #666 !important;
+        page-break-inside: avoid !important;
+      }
+
+      /* Hide elements with no-print class */
+      .no-print {
+        display: none !important;
+        visibility: hidden !important;
+      }
+
+      /* Force text visibility */
+      #print-content-wrapper strong {
+        font-weight: bold !important;
+      }
+
+      #print-content-wrapper span,
+      #print-content-wrapper p,
+      #print-content-wrapper div {
+        color: #000 !important;
+      }
     }
   </style>
   <script type="importmap">
