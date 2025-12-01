@@ -237,6 +237,186 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
         resetForm();
     };
 
+    const handlePrintDeliveryNote = (dispatch: typeof lastDispatch) => {
+        if (!dispatch) return;
+
+        const companyName = 'نظام إدارة المخزون'; // يمكن تحسينه لاحقاً
+        const clientName = dispatch.client ? getClientFullNameById(dispatch.client.id) : 'غير محدد';
+
+        const printContent = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>سند تسليم بضاعة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Tajawal', Arial, sans-serif; 
+            direction: rtl; 
+            padding: 30px;
+            background: white;
+            font-size: 14px;
+        }
+        header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 2px solid #ddd; 
+            padding-bottom: 15px; 
+            margin-bottom: 30px;
+        }
+        header h1 { font-size: 24px; font-weight: bold; color: #2563eb; }
+        header h2 { font-size: 18px; font-weight: bold; }
+        header p { font-size: 12px; color: #666; margin-top: 5px; }
+        .header-right { text-align: left; }
+        section { margin-bottom: 30px; }
+        .info-grid { 
+            display: table; 
+            width: 100%; 
+            margin-bottom: 30px;
+        }
+        .info-box { 
+            display: table-cell; 
+            width: 50%; 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 5px;
+        }
+        .info-box:first-child { margin-left: 15px; }
+        .info-box h3 { 
+            font-weight: bold; 
+            color: #666; 
+            border-bottom: 1px solid #ddd; 
+            padding-bottom: 5px; 
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        .info-box p { margin: 5px 0; font-size: 13px; }
+        .info-box span { font-weight: bold; }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 20px 0;
+        }
+        th, td { 
+            border: 1px solid #333; 
+            padding: 10px; 
+            text-align: right;
+        }
+        th { 
+            background-color: #f0f0f0; 
+            font-weight: bold;
+            font-size: 13px;
+        }
+        td { font-size: 12px; }
+        tbody tr:hover { background-color: #f8f9fa; }
+        footer { 
+            margin-top: 80px; 
+            padding-top: 30px; 
+            display: table;
+            width: 100%;
+            text-align: center;
+        }
+        .signature { 
+            display: table-cell;
+            width: 50%;
+        }
+        .signature p:first-child { 
+            font-weight: bold; 
+            margin-bottom: 10px;
+        }
+        .signature p:last-child { 
+            font-size: 10px; 
+            color: #666; 
+            margin-top: 5px;
+        }
+        @media print {
+            @page { size: A4; margin: 10mm; }
+            body { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>سند تسليم بضاعة</h1>
+            <p>Delivery Note</p>
+        </div>
+        <div class="header-right">
+            <h2>${companyName}</h2>
+            <p>تاريخ الطباعة: ${new Date().toLocaleString('ar-EG')}</p>
+        </div>
+    </header>
+
+    <div class="info-grid">
+        <div class="info-box">
+            <h3>تفاصيل العميل</h3>
+            <p><span>العميل / الموقع:</span> ${clientName}</p>
+        </div>
+        <div class="info-box">
+            <h3>تفاصيل التسليم</h3>
+            <p><span>تاريخ التسليم:</span> ${new Date(dispatch.date).toLocaleDateString('ar-EG')}</p>
+            <p><span>رقم المرجع:</span> ${dispatch.reference || 'لا يوجد'}</p>
+        </div>
+    </div>
+
+    <section>
+        <table>
+            <thead>
+                <tr>
+                    <th>م.</th>
+                    <th>اسم المنتج</th>
+                    <th>بار كود القطعة (Serial Number)</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${dispatch.items.map((item, index) => {
+                    const product = getProductById(item.productId);
+                    return `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${product?.name || 'منتج غير معروف'}</td>
+                            <td style="font-family: monospace;">${item.serialNumber}</td>
+                        </tr>
+                    `;
+                }).join('')}
+            </tbody>
+        </table>
+    </section>
+
+    <footer>
+        <div class="signature">
+            <p>.................................................</p>
+            <p>توقيع المستلم</p>
+            <p>(Receiver's Signature)</p>
+        </div>
+        <div class="signature">
+            <p>.................................................</p>
+            <p>توقيع المسلّم</p>
+            <p>(Giver's Signature)</p>
+        </div>
+    </footer>
+</body>
+</html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            
+            printWindow.onload = () => {
+                printWindow.focus();
+                setTimeout(() => {
+                    printWindow.print();
+                    printWindow.close();
+                }, 250);
+            };
+        }
+    };
+
     return (
         <>
             <div className="space-y-6">
@@ -511,24 +691,15 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
             />
             {lastDispatch && (
                 <Modal isOpen={!!lastDispatch} onClose={() => setLastDispatch(null)} title="تم الصرف بنجاح">
-                    <div className="no-print p-6 pt-0 flex flex-col items-center gap-4 text-center">
+                    <div className="p-6 pt-0 flex flex-col items-center gap-4 text-center">
                         <p>تم صرف {lastDispatch.items.length} قطعة بنجاح إلى "{getClientFullNameById(lastDispatch.client?.id)}".</p>
                         <div className="flex gap-3">
                             <Button variant="secondary" onClick={() => setLastDispatch(null)}>إغلاق</Button>
-                            <Button onClick={() => window.print()}>
+                            <Button onClick={() => handlePrintDeliveryNote(lastDispatch)}>
                                 <Icons.Printer className="h-5 w-5 ml-2" />
                                 طباعة سند التسليم
                             </Button>
                         </div>
-                    </div>
-                    <div className="print-container" style={{ display: 'none' }}>
-                        <DeliveryNote
-                            client={lastDispatch.client}
-                            date={lastDispatch.date}
-                            reference={lastDispatch.reference}
-                            items={lastDispatch.items}
-                            inventory={inventory}
-                        />
                     </div>
                 </Modal>
             )}

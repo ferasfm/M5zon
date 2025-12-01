@@ -690,14 +690,93 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
     };
 
     const handlePrintAction = () => {
-        const afterPrintHandler = () => {
-            setIsPrintPreviewOpen(false);
-            setIsInvPrintPreviewOpen(false);
-            setIsDispatchPrintPreviewOpen(false);
-            window.removeEventListener('afterprint', afterPrintHandler);
-        };
-        window.addEventListener('afterprint', afterPrintHandler);
-        window.print();
+        // الحصول على المحتوى المراد طباعته
+        const printArea = document.querySelector('.print-area');
+        if (!printArea) {
+            console.error('Print area not found');
+            return;
+        }
+
+        // إنشاء نافذة طباعة جديدة
+        const printContent = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تقرير</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Tajawal', Arial, sans-serif; 
+            direction: rtl; 
+            padding: 20px;
+            background: white;
+            font-size: 12px;
+        }
+        h1, h2, h3 { margin-bottom: 10px; }
+        h1 { font-size: 24px; font-weight: bold; text-align: center; }
+        h2 { font-size: 20px; font-weight: bold; text-align: center; }
+        h3 { font-size: 14px; font-weight: bold; }
+        p { margin: 5px 0; }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 20px 0;
+        }
+        th, td { 
+            border: 1px solid #333; 
+            padding: 8px; 
+            text-align: right; 
+            font-size: 11px;
+        }
+        th { 
+            background-color: #f0f0f0; 
+            font-weight: bold;
+        }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: bold; }
+        .mb-2 { margin-bottom: 10px; }
+        .mb-4 { margin-bottom: 20px; }
+        .mb-8 { margin-bottom: 30px; }
+        .mt-4 { margin-top: 20px; }
+        .mt-20 { margin-top: 80px; }
+        .p-4 { padding: 15px; }
+        .bg-slate-50 { background-color: #f8f9fa; }
+        .rounded-md { border-radius: 5px; }
+        .border { border: 1px solid #ddd; }
+        .text-slate-500 { color: #666; }
+        .text-xs { font-size: 10px; }
+        @media print {
+            @page { size: A4; margin: 10mm; }
+            body { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    ${printArea.innerHTML}
+</body>
+</html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            
+            printWindow.onload = () => {
+                printWindow.focus();
+                setTimeout(() => {
+                    printWindow.print();
+                    printWindow.close();
+                }, 250);
+            };
+        }
+
+        // إغلاق النوافذ المنبثقة
+        setIsPrintPreviewOpen(false);
+        setIsInvPrintPreviewOpen(false);
+        setIsDispatchPrintPreviewOpen(false);
     };
 
     return (
