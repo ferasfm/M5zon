@@ -128,7 +128,9 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                 }
             } else {
                 // منتج عادي - نستخدم المنطق القديم
-                key = `${item.productId}-${item.purchaseReason || 'N/A'}-${item.costPrice}-${item.destinationClientId}`;
+                // استخدام dispatchClientId إذا كان موجود، وإلا destinationClientId
+                const clientId = item.dispatchClientId || item.destinationClientId;
+                key = `${item.productId}-${item.purchaseReason || 'N/A'}-${item.costPrice}-${clientId}`;
                 const product = getProductById(item.productId);
                 productName = product?.name || 'منتج غير معروف';
                 productSku = product?.sku || '-';
@@ -137,12 +139,14 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
             
             if (!acc[key]) {
                 const productKey = item.bundleGroupId ? `bundle-${item.bundleGroupId}` : item.productId;
+                // استخدام dispatchClientId إذا كانت القطعة مصروفة، وإلا destinationClientId
+                const clientId = item.dispatchClientId || item.destinationClientId;
                 acc[key] = {
                     productId: item.bundleGroupId ? 'bundle' : item.productId,
                     productName: productName,
                     productSku: productSku,
                     purchaseReason: item.purchaseReason || 'غير محدد',
-                    clientName: item.destinationClientId ? getClientFullNameById(item.destinationClientId) : 'مستودع عام',
+                    clientName: clientId ? getClientFullNameById(clientId) : 'مستودع IT',
                     quantity: item.bundleGroupId ? 1 : 0, // الحزمة تعتبر وحدة واحدة
                     unitPrice: unitPrice,
                     totalPrice: 0,
