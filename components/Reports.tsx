@@ -102,6 +102,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
     const [invSelectedClient, setInvSelectedClient] = useState<string>('all');
     const [invReportData, setInvReportData] = useState<InventoryItem[] | null>(null);
     const [isInvPrintPreviewOpen, setIsInvPrintPreviewOpen] = useState(false);
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
     // State for receiving report
     const [receiveSelectedSupplier, setReceiveSelectedSupplier] = useState<string>('all');
@@ -241,6 +242,18 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         fetchCompanyName();
     }, [getSetting]);
 
+    const toggleGroupExpansion = (groupKey: string) => {
+        setExpandedGroups(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(groupKey)) {
+                newSet.delete(groupKey);
+            } else {
+                newSet.add(groupKey);
+            }
+            return newSet;
+        });
+    };
+
     const handleGenerateInventoryReport = () => {
         let filteredItems = inventoryItems.filter(item => {
             if (invSelectedStatus !== 'all' && item.status !== invSelectedStatus) return false;
@@ -275,7 +288,52 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             const dateB = b.purchaseDate ? new Date(b.purchaseDate).getTime() : 0;
             return dateB - dateA; // من الأحدث إلى الأقدم
         }));
+        // إعادة تعيين الصفوف الموسعة
+        setExpandedGroups(new Set());
     };
+
+    // تجميع البيانات حسب المنتج والموقع والحالة
+    const groupedInventoryData = useMemo(() => {
+        if (!invReportData) return null;
+
+        const grouped = invReportData.reduce((acc, item) => {
+            const product = getProductById(item.productId);
+            const location = getItemLocationName(item);
+            const key = `${item.productId}-${location}-${item.status}`;
+
+            if (!acc[key]) {
+                acc[key] = {
+                    key,
+                    productId: item.productId,
+                    productName: product?.name || 'منتج غير معروف',
+                    productSku: product?.sku || '-',
+                    location,
+                    status: item.status,
+                    quantity: 0,
+                    totalCost: 0,
+                    items: []
+                };
+            }
+
+            acc[key].quantity += 1;
+            acc[key].totalCost += item.costPrice;
+            acc[key].items.push(item);
+
+            return acc;
+        }, {} as Record<string, {
+            key: string;
+            productId: string;
+            productName: string;
+            productSku: string;
+            location: string;
+            status: string;
+            quantity: number;
+            totalCost: number;
+            items: InventoryItem[];
+        }>);
+
+        return Object.values(grouped);
+    }, [invReportData, getProductById, getItemLocationName]);
 
     const handleExportInventoryReport = () => {
         if (!invReportData) return;
@@ -891,29 +949,62 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                             <table className="w-full text-sm text-right">
                                 <thead className="text-xs text-slate-700 uppercase bg-slate-100">
                                     <tr>
+                                        <th className="px-4 py-3 w-12"></th>
                                         <th className="px-4 py-3">المنتج</th>
-                                        <th className="px-4 py-3">بار كود القطعة</th>
+                                        <th className="px-4 py-3">الكمية</th>
                                         <th className="px-4 py-3">الحالة</th>
                                         <th className="px-4 py-3">الموقع الحالي</th>
-                                        <th className="px-4 py-3">سبب الشراء</th>
-                                        <th className="px-4 py-3">تكلفة الشراء</th>
+                                        <th className="px-4 py-3">التكلفة الإجمالية</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {invReportData.map(item => {
-                                        const product = getProductById(item.productId);
+                                    {groupedInventoryData && groupedInventoryData.map(group => {
+                                        const isExpanded = expandedGroups.has(group.key);
                                         return (
-                                            <tr key={item.id} className="bg-white border-b hover:bg-slate-50">
-                                                <td className="px-4 py-3 align-top">
-                                                    <span className="font-semibold">{product?.name}</span>
-                                                    <span className="block text-xs font-mono text-slate-400">{product?.sku}</span>
-                                                </td>
-                                                <td className="px-4 py-3 font-mono align-top">{item.serialNumber}</td>
-                                                <td className="px-4 py-3 align-top">{itemStatuses[item.status]}</td>
-                                                <td className="px-4 py-3 align-top">{getItemLocationName(item)}</td>
-                                                <td className="px-4 py-3 align-top">{item.purchaseReason || '-'}</td>
-                                                <td className="px-4 py-3 align-top">{formatCurrency(item.costPrice)}</td>
-                                            </tr>
+                                            <React.Fragment key={group.key}>
+                                                {/* الصف المجمع */}
+                                                <tr 
+                                                    className="bg-white border-b hover:bg-slate-50 cursor-pointer"
+                                                    onClick={() => toggleGroupExpansion(group.key)}
+                                                >
+                                                    <td className="px-4 py-3 text-center">
+                                                        {isExpanded ? (
+                                                            <Icons.ChevronDown className="h-4 w-4 inline" />
+                                                        ) : (
+                                                            <Icons.ChevronRight className="h-4 w-4 inline" />
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="font-semibold">{group.productName}</span>
+                                                        <span className="block text-xs font-mono text-slate-400">{group.productSku}</span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 font-semibold">
+                                                            {group.quantity} قطعة
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3">{itemStatuses[group.status]}</td>
+                                                    <td className="px-4 py-3">{group.location}</td>
+                                                    <td className="px-4 py-3 font-semibold">{formatCurrency(group.totalCost)}</td>
+                                                </tr>
+                                                
+                                                {/* الصفوف التفصيلية */}
+                                                {isExpanded && group.items.map(item => (
+                                                    <tr key={item.id} className="bg-slate-50 border-b">
+                                                        <td className="px-4 py-2"></td>
+                                                        <td className="px-4 py-2 text-xs text-slate-600">
+                                                            <Icons.CornerDownRight className="h-3 w-3 inline ml-1" />
+                                                            باركود: {item.serialNumber}
+                                                        </td>
+                                                        <td className="px-4 py-2 text-xs text-slate-600">1</td>
+                                                        <td className="px-4 py-2 text-xs text-slate-600">{itemStatuses[item.status]}</td>
+                                                        <td className="px-4 py-2 text-xs text-slate-600">
+                                                            {item.purchaseReason || '-'}
+                                                        </td>
+                                                        <td className="px-4 py-2 text-xs text-slate-600">{formatCurrency(item.costPrice)}</td>
+                                                    </tr>
+                                                ))}
+                                            </React.Fragment>
                                         );
                                     })}
                                 </tbody>

@@ -107,6 +107,15 @@ export const Icons = {
     Plus: (props: React.SVGProps<SVGSVGElement>) => (
         <Icon {...props}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></Icon>
     ),
+    ChevronDown: (props: React.SVGProps<SVGSVGElement>) => (
+        <Icon {...props}><polyline points="6 9 12 15 18 9"></polyline></Icon>
+    ),
+    ChevronRight: (props: React.SVGProps<SVGSVGElement>) => (
+        <Icon {...props}><polyline points="9 18 15 12 9 6"></polyline></Icon>
+    ),
+    CornerDownRight: (props: React.SVGProps<SVGSVGElement>) => (
+        <Icon {...props}><polyline points="15 10 20 15 15 20"></polyline><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></Icon>
+    ),
     Unlink: (props: React.SVGProps<SVGSVGElement>) => (
         <Icon {...props}><path d="M18.84 12.25l1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07a5.006 5.006 0 0 0-7.07-.12l-1.71 1.72"></path><path d="M5.17 11.75l-1.72 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 7.07.12l1.71-1.72"></path><line x1="8" y1="2" x2="8" y2="5"></line><line x1="2" y1="8" x2="5" y2="8"></line><line x1="16" y1="19" x2="16" y2="22"></line><line x1="19" y1="16" x2="22" y2="16"></line></Icon>
     ),
