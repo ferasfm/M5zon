@@ -18,6 +18,30 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'standard' | 'bundle'>('standard');
 
+    // دالة لحساب حالة الحزمة
+    const getBundleStatus = (bundle: Product) => {
+        if (!bundle.components || bundle.components.length === 0) {
+            return { isComplete: true, missing: [] };
+        }
+
+        const missing: string[] = [];
+        let isComplete = true;
+
+        for (const component of bundle.components) {
+            const availableItems = inventoryItems.filter(
+                item => item.productId === component.productId && item.status === 'in_stock'
+            );
+
+            if (availableItems.length < component.quantity) {
+                isComplete = false;
+                const product = getProductById(component.productId);
+                missing.push(`${product?.name || 'منتج'} (${availableItems.length}/${component.quantity})`);
+            }
+        }
+
+        return { isComplete, missing };
+    };
+
     const openModalForNew = (type: 'standard' | 'bundle') => {
         setEditingProduct(null);
         setProductTypeForCreation(type);
@@ -193,44 +217,82 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
 
             {activeTab === 'bundle' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredBundleProducts.map(bundle => (
-                        <Card key={bundle.id} className="flex flex-col">
-                            <CardHeader>
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <CardTitle>{bundle.name}</CardTitle>
-                                        <p className="text-xs text-slate-500 font-mono">باركود: {bundle.sku}</p>
+                    {filteredBundleProducts.map(bundle => {
+                        const bundleStatus = getBundleStatus(bundle);
+                        return (
+                            <Card key={bundle.id} className="flex flex-col">
+                                <CardHeader>
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <CardTitle>{bundle.name}</CardTitle>
+                                                {bundleStatus.isComplete ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                        <Icons.CheckCircle className="h-3 w-3" />
+                                                        كاملة
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                                        <Icons.AlertTriangle className="h-3 w-3" />
+                                                        ناقصة
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-slate-500 font-mono">باركود: {bundle.sku}</p>
+                                        </div>
+                                        <div className="flex gap-1 flex-shrink-0">
+                                            <Button variant="ghost" size="sm" onClick={() => openModalForEdit(bundle)}>
+                                                <Icons.Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" className="text-danger hover:bg-red-50" onClick={() => deleteProduct(bundle.id)}>
+                                                <Icons.Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <div className="flex gap-1 flex-shrink-0">
-                                        <Button variant="ghost" size="sm" onClick={() => openModalForEdit(bundle)}>
-                                            <Icons.Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="sm" className="text-danger hover:bg-red-50" onClick={() => deleteProduct(bundle.id)}>
-                                            <Icons.Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="flex-grow">
-                                <p className="text-lg font-bold text-primary mb-4">
-                                    {formatCurrency(bundle.standardCostPrice)}
-                                    <span className="text-xs font-normal text-slate-500"> / تكلفة الحزمة</span>
-                                </p>
-                                <h4 className="text-sm font-semibold text-slate-700 mb-2">المكونات:</h4>
-                                <ul className="space-y-2 text-sm text-slate-600">
-                                    {bundle.components?.map(comp => {
-                                        const componentProduct = getProductById(comp.productId);
-                                        return (
-                                            <li key={comp.productId} className="flex justify-between p-2 bg-slate-50 rounded-md">
-                                                <span>{componentProduct?.name || 'منتج غير معروف'}</span>
-                                                <span className="font-bold">{comp.quantity}x</span>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                </CardHeader>
+                                <CardContent className="flex-grow">
+                                    <p className="text-lg font-bold text-primary mb-4">
+                                        {formatCurrency(bundle.standardCostPrice)}
+                                        <span className="text-xs font-normal text-slate-500"> / تكلفة الحزمة</span>
+                                    </p>
+                                    <h4 className="text-sm font-semibold text-slate-700 mb-2">المكونات:</h4>
+                                    <ul className="space-y-2 text-sm text-slate-600">
+                                        {bundle.components?.map(comp => {
+                                            const componentProduct = getProductById(comp.productId);
+                                            const availableItems = inventoryItems.filter(
+                                                item => item.productId === comp.productId && item.status === 'in_stock'
+                                            );
+                                            const isComponentComplete = availableItems.length >= comp.quantity;
+                                            
+                                            return (
+                                                <li 
+                                                    key={comp.productId} 
+                                                    className={`flex justify-between items-center p-2 rounded-md ${
+                                                        isComponentComplete 
+                                                            ? 'bg-green-50 border border-green-200' 
+                                                            : 'bg-red-50 border border-red-200'
+                                                    }`}
+                                                >
+                                                    <span className={isComponentComplete ? 'text-green-900' : 'text-red-900'}>
+                                                        {componentProduct?.name || 'منتج غير معروف'}
+                                                    </span>
+                                                    <span className={`font-bold ${isComponentComplete ? 'text-green-700' : 'text-red-700'}`}>
+                                                        {availableItems.length}/{comp.quantity}
+                                                    </span>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                    {!bundleStatus.isComplete && bundleStatus.missing.length > 0 && (
+                                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                                            <p className="text-xs font-semibold text-yellow-900 mb-1">منتجات ناقصة:</p>
+                                            <p className="text-xs text-yellow-700">{bundleStatus.missing.join(', ')}</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
                      {filteredBundleProducts.length === 0 && (
                         <div className="col-span-full text-center py-12 text-slate-500">
                             <p>لا توجد حزم تطابق بحثك.</p>

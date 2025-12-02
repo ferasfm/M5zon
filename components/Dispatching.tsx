@@ -33,6 +33,18 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [searchModalInitialProductId, setSearchModalInitialProductId] = useState('');
     const [lastDispatch, setLastDispatch] = useState<{ client: any; date: string; reference: string; items: InventoryItem[] } | null>(null);
+    const [isBundleDetailsOpen, setIsBundleDetailsOpen] = useState(false);
+    const [bundleAvailability, setBundleAvailability] = useState<{
+        bundleName: string;
+        components: Array<{
+            productId: string;
+            productName: string;
+            required: number;
+            available: number;
+            isComplete: boolean;
+        }>;
+        canAddFull: boolean;
+    } | null>(null);
 
     const { clients, provinces, areas, findItemBySerial, getProductById, products, inventoryItems, getClientFullNameById, reasonsApi } = inventory;
     const dispatchReasons = reasonsApi.getDispatchReasons();
@@ -144,7 +156,52 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
         setItemsToDispatch([...itemsToDispatch, item]);
     };
 
-    const handleAddBundleItems = () => {
+    const checkBundleAvailability = () => {
+        if (!selectedBundleId) {
+            setError('الرجاء اختيار حزمة أولاً.');
+            return;
+        }
+        setError('');
+
+        const bundle = products.find(p => p.id === selectedBundleId);
+        if (!bundle || !bundle.components) return;
+
+        const currentDispatchIds = new Set(itemsToDispatch.map(i => i.id));
+        const componentsStatus = [];
+        let canAddFull = true;
+
+        for (const component of bundle.components) {
+            const availableItems = inventoryItems.filter(
+                item => item.productId === component.productId &&
+                    item.status === 'in_stock' &&
+                    !currentDispatchIds.has(item.id)
+            );
+
+            const product = getProductById(component.productId);
+            const isComplete = availableItems.length >= component.quantity;
+            
+            if (!isComplete) {
+                canAddFull = false;
+            }
+
+            componentsStatus.push({
+                productId: component.productId,
+                productName: product?.name || 'منتج غير معروف',
+                required: component.quantity,
+                available: availableItems.length,
+                isComplete
+            });
+        }
+
+        setBundleAvailability({
+            bundleName: bundle.name,
+            components: componentsStatus,
+            canAddFull
+        });
+        setIsBundleDetailsOpen(true);
+    };
+
+    const handleAddBundleItems = (addPartial: boolean = false) => {
         if (!selectedBundleId) {
             setError('الرجاء اختيار حزمة أولاً.');
             return;
@@ -155,8 +212,6 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
         if (!bundle || !bundle.components) return;
 
         const itemsToAdd: InventoryItem[] = [];
-        let stockError = '';
-
         const currentDispatchIds = new Set(itemsToDispatch.map(i => i.id));
 
         for (const component of bundle.components) {
@@ -166,24 +221,25 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                     !currentDispatchIds.has(item.id)
             );
 
-            if (availableItems.length < component.quantity) {
-                const product = getProductById(component.productId);
-                stockError = `لا يوجد مخزون كافٍ من '${product?.name}'. المطلوب: ${component.quantity}, المتاح: ${availableItems.length}`;
-                break;
+            const quantityToAdd = addPartial 
+                ? Math.min(availableItems.length, component.quantity)
+                : component.quantity;
+
+            if (!addPartial && availableItems.length < component.quantity) {
+                // في حالة الإضافة الكاملة، نفتح modal التفاصيل
+                checkBundleAvailability();
+                return;
             }
 
-            const itemsForThisComponent = availableItems.slice(0, component.quantity);
+            const itemsForThisComponent = availableItems.slice(0, quantityToAdd);
             itemsToAdd.push(...itemsForThisComponent);
             itemsForThisComponent.forEach(item => currentDispatchIds.add(item.id));
         }
 
-        if (stockError) {
-            setError(stockError);
-        } else {
-            setItemsToDispatch(prev => [...prev, ...itemsToAdd]);
-            setSelectedBundleId('');
-            notification?.addNotification(`تم إضافة ${itemsToAdd.length} قطعة (مكونات الحزمة) إلى قائمة الصرف.`, 'success');
-        }
+        setItemsToDispatch(prev => [...prev, ...itemsToAdd]);
+        setSelectedBundleId('');
+        setIsBundleDetailsOpen(false);
+        notification?.addNotification(`تم إضافة ${itemsToAdd.length} قطعة (مكونات الحزمة) إلى قائمة الصرف.`, 'success');
     };
 
 
@@ -545,7 +601,7 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                                             {bundleProducts.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                         </select>
                                     </div>
-                                    <Button onClick={handleAddBundleItems} className="w-full" variant="secondary">
+                                    <Button onClick={checkBundleAvailability} className="w-full" variant="secondary">
                                         <Icons.PlusCircle className="h-5 w-5 ml-2" />
                                         إضافة مكونات الحزمة
                                     </Button>
@@ -689,6 +745,104 @@ const Dispatching: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory })
                 initialProductId={searchModalInitialProductId}
                 allowedStatuses={['in_stock']}
             />
+            {/* Bundle Details Modal */}
+            {bundleAvailability && (
+                <Modal 
+                    isOpen={isBundleDetailsOpen} 
+                    onClose={() => {
+                        setIsBundleDetailsOpen(false);
+                        setBundleAvailability(null);
+                    }} 
+                    title={`تفاصيل الحزمة: ${bundleAvailability.bundleName}`}
+                >
+                    <div className="space-y-4">
+                        <div className="bg-slate-50 p-4 rounded-md">
+                            <h3 className="font-semibold mb-3 text-slate-700">حالة المكونات:</h3>
+                            <div className="space-y-2">
+                                {bundleAvailability.components.map((comp, index) => (
+                                    <div 
+                                        key={index} 
+                                        className={`flex justify-between items-center p-3 rounded-md border ${
+                                            comp.isComplete 
+                                                ? 'bg-green-50 border-green-200' 
+                                                : 'bg-red-50 border-red-200'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {comp.isComplete ? (
+                                                <Icons.CheckCircle className="h-5 w-5 text-green-600" />
+                                            ) : (
+                                                <Icons.AlertCircle className="h-5 w-5 text-red-600" />
+                                            )}
+                                            <span className={`font-medium ${
+                                                comp.isComplete ? 'text-green-900' : 'text-red-900'
+                                            }`}>
+                                                {comp.productName}
+                                            </span>
+                                        </div>
+                                        <div className={`text-sm font-semibold ${
+                                            comp.isComplete ? 'text-green-700' : 'text-red-700'
+                                        }`}>
+                                            {comp.available} / {comp.required}
+                                            {!comp.isComplete && (
+                                                <span className="mr-2 text-xs">
+                                                    (ناقص {comp.required - comp.available})
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {!bundleAvailability.canAddFull && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                                <div className="flex items-start gap-2">
+                                    <Icons.AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                                    <div>
+                                        <p className="font-semibold text-yellow-900">تنبيه: الحزمة غير مكتملة</p>
+                                        <p className="text-sm text-yellow-700 mt-1">
+                                            بعض المنتجات غير متوفرة بالكمية المطلوبة. يمكنك إضافة المتوفر فقط.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex gap-3 pt-4 border-t">
+                            <Button 
+                                variant="secondary" 
+                                onClick={() => {
+                                    setIsBundleDetailsOpen(false);
+                                    setBundleAvailability(null);
+                                }}
+                                className="flex-1"
+                            >
+                                إلغاء
+                            </Button>
+                            {bundleAvailability.canAddFull ? (
+                                <Button 
+                                    onClick={() => handleAddBundleItems(false)}
+                                    className="flex-1"
+                                >
+                                    <Icons.CheckCircle className="h-5 w-5 ml-2" />
+                                    إضافة الحزمة الكاملة
+                                </Button>
+                            ) : (
+                                <Button 
+                                    onClick={() => handleAddBundleItems(true)}
+                                    className="flex-1"
+                                    variant="secondary"
+                                >
+                                    <Icons.PlusCircle className="h-5 w-5 ml-2" />
+                                    إضافة المتوفر فقط
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
             {lastDispatch && (
                 <Modal isOpen={!!lastDispatch} onClose={() => setLastDispatch(null)} title="تم الصرف بنجاح">
                     <div className="p-6 pt-0 flex flex-col items-center gap-4 text-center">

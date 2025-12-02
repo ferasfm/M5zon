@@ -36,11 +36,11 @@ const initialColumns: ColumnConfig[] = [
     { key: 'totalPrice', label: 'التكلفة الكلية', visible: true },
     { key: 'reason', label: 'سبب الشراء', visible: true },
     { key: 'client', label: 'العميل / الموقع', visible: true },
-    { key: 'notes', label: 'ملاحظات', visible: false },
+    { key: 'notes', label: 'ملاحظات', visible: true },
 ];
 
 const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
-    const { inventoryItems, getProductById, suppliers, getSupplierById, getClientFullNameById } = inventory;
+    const { inventoryItems, getProductById, suppliers, getSupplierById, getClientFullNameById, products } = inventory;
     const notification = useNotification();
     const { getSetting } = useSettings();
 
@@ -151,7 +151,8 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                     unitPrice: unitPrice,
                     totalPrice: 0,
                     notes: productNotes[productKey] || '',
-                    items: []
+                    items: [],
+                    bundleGroupId: item.bundleGroupId
                 };
             }
             
@@ -170,9 +171,46 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
             }
             
             return acc;
-        }, {} as Record<string, FinancialClaimRow & { items: InventoryItem[] }>);
+        }, {} as Record<string, FinancialClaimRow & { items: InventoryItem[]; bundleGroupId?: string }>);
 
-        setReportData(Object.values(grouped));
+        // التحقق من الحزم الناقصة وإضافة ملاحظات تلقائية
+        const groupedWithNotes = Object.values(grouped).map(row => {
+            if (row.bundleGroupId && row.items.length > 0) {
+                // هذه حزمة - نحتاج للتحقق من اكتمالها
+                const firstItem = row.items[0];
+                
+                // البحث عن تعريف الحزمة الأصلية
+                const bundleProduct = products.find(p => p.name === firstItem.bundleName && p.productType === 'bundle');
+                
+                if (bundleProduct && bundleProduct.components) {
+                    // حساب المنتجات الموجودة في الحزمة المصروفة
+                    const dispatchedProducts = row.items.reduce((acc, item) => {
+                        acc[item.productId] = (acc[item.productId] || 0) + 1;
+                        return acc;
+                    }, {} as Record<string, number>);
+                    
+                    // التحقق من المنتجات الناقصة
+                    const missingProducts: string[] = [];
+                    for (const component of bundleProduct.components) {
+                        const dispatchedQty = dispatchedProducts[component.productId] || 0;
+                        if (dispatchedQty < component.quantity) {
+                            const product = getProductById(component.productId);
+                            const missing = component.quantity - dispatchedQty;
+                            missingProducts.push(`${product?.name || 'منتج'} (${missing})`);
+                        }
+                    }
+                    
+                    // إضافة ملاحظة تلقائية إذا كانت الحزمة ناقصة
+                    if (missingProducts.length > 0) {
+                        const autoNote = `⚠️ الحزمة غير مكتملة - ناقص: ${missingProducts.join(', ')}`;
+                        row.notes = row.notes ? `${row.notes}\n${autoNote}` : autoNote;
+                    }
+                }
+            }
+            return row;
+        });
+
+        setReportData(groupedWithNotes);
     };
 
     const handlePrint = () => {
