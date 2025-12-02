@@ -245,7 +245,7 @@ export const useInventory = (): UseInventoryReturn | null => {
 
     const getItemLocationName = useCallback((item: InventoryItem): string => {
         const locationId = item.status === 'dispatched' ? item.dispatchClientId : item.destinationClientId;
-        if (!locationId) return 'مستودع';
+        if (!locationId) return 'مستودع IT';
         return getClientFullNameById(locationId) || 'موقع غير معروف';
     }, [getClientFullNameById]);
 
