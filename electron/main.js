@@ -1,7 +1,11 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import isDev from 'electron-is-dev';
+import { createRequire } from 'module';
+import db from './database.js';
+
+const require = createRequire(import.meta.url);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,7 +21,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.cjs')
     },
     icon: path.join(__dirname, '../public/icon.png'),
     title: 'نظام إدارة المخزون الاحترافي',
@@ -44,9 +48,27 @@ function createWindow() {
   });
 }
 
+// Database IPC Handlers
+ipcMain.handle('db-connect', async (event, config) => {
+  return await db.connect(config);
+});
+
+ipcMain.handle('db-query', async (event, sql, params) => {
+  return await db.query(sql, params);
+});
+
+ipcMain.handle('db-disconnect', async () => {
+  return await db.disconnect();
+});
+
+ipcMain.handle('db-is-connected', () => {
+  return db.isConnected();
+});
+
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
+  db.disconnect(); // Ensure DB is disconnected on exit
   if (process.platform !== 'darwin') {
     app.quit();
   }

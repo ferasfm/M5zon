@@ -80,7 +80,7 @@ const ConnectionStatusPanel: React.FC<ConnectionStatusPanelProps> = ({
 
     try {
       const result = await connectionManager.testConnection(activeConnection.id);
-      
+
       if (result.success) {
         setLastTestResult(`✓ الاتصال ناجح (${result.responseTime}ms)`);
       } else {
@@ -90,7 +90,7 @@ const ConnectionStatusPanel: React.FC<ConnectionStatusPanelProps> = ({
       // تحديث معلومات الصحة
       const health = await healthMonitor.checkConnectionHealth(activeConnection.id);
       setHealthInfo(health);
-      
+
     } catch (error) {
       setLastTestResult(`✗ خطأ في الاختبار: ${(error as Error).message}`);
     } finally {
@@ -108,10 +108,34 @@ const ConnectionStatusPanel: React.FC<ConnectionStatusPanelProps> = ({
     }
   };
 
+  // تنسيق الوقت
+  const formatTime = (date: Date) => {
+    return date.toLocaleString('ar-SA', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  // إخفاء معلومات حساسة من URL
+  const maskSensitiveUrl = (url: string) => {
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname;
+      const parts = hostname.split('.');
+      if (parts.length > 2) {
+        parts[0] = parts[0].substring(0, 3) + '***';
+      }
+      return `${urlObj.protocol}//${parts.join('.')}`;
+    } catch {
+      return url.substring(0, 20) + '***';
+    }
+  };
+
   // الحصول على أيقونة الحالة
   const getStatusIcon = () => {
     if (!activeConnection) {
-      return <Icons.WifiOff className="h-5 w-5 text-gray-400" />;
+      return <Icons.Database className="h-5 w-5 text-gray-400" />;
     }
 
     if (!healthInfo) {
@@ -120,13 +144,13 @@ const ConnectionStatusPanel: React.FC<ConnectionStatusPanelProps> = ({
 
     switch (healthInfo.status) {
       case 'healthy':
-        return <Icons.Wifi className="h-5 w-5 text-green-500" />;
+        return <Icons.CheckCircle className="h-5 w-5 text-green-500" />;
       case 'warning':
         return <Icons.AlertTriangle className="h-5 w-5 text-yellow-500" />;
       case 'error':
-        return <Icons.WifiOff className="h-5 w-5 text-red-500" />;
+        return <Icons.AlertCircle className="h-5 w-5 text-red-500" />;
       default:
-        return <Icons.HelpCircle className="h-5 w-5 text-gray-400" />;
+        return <Icons.Info className="h-5 w-5 text-gray-400" />;
     }
   };
 
@@ -157,30 +181,6 @@ const ConnectionStatusPanel: React.FC<ConnectionStatusPanelProps> = ({
       unknown: 'غير معروف'
     };
     return translations[status as keyof typeof translations] || status;
-  };
-
-  // تنسيق الوقت
-  const formatTime = (date: Date) => {
-    return date.toLocaleString('ar-SA', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
-
-  // إخفاء معلومات حساسة من URL
-  const maskSensitiveUrl = (url: string) => {
-    try {
-      const urlObj = new URL(url);
-      const hostname = urlObj.hostname;
-      const parts = hostname.split('.');
-      if (parts.length > 2) {
-        parts[0] = parts[0].substring(0, 3) + '***';
-      }
-      return `${urlObj.protocol}//${parts.join('.')}`;
-    } catch {
-      return url.substring(0, 20) + '***';
-    }
   };
 
   return (
@@ -227,7 +227,7 @@ const ConnectionStatusPanel: React.FC<ConnectionStatusPanelProps> = ({
         {!activeConnection ? (
           // لا يوجد اتصال نشط
           <div className="text-center py-8">
-            <Icons.WifiOff className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <Icons.Database className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 mb-4">لا يوجد اتصال نشط</p>
             <p className="text-sm text-gray-400">
               قم بالاتصال بقاعدة بيانات لعرض معلومات الحالة
@@ -253,7 +253,7 @@ const ConnectionStatusPanel: React.FC<ConnectionStatusPanelProps> = ({
                   )}
                 </div>
               </div>
-              
+
               <div className="text-right">
                 <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor()}`}>
                   {healthInfo ? translateHealthStatus(healthInfo.status) : 'جاري الفحص...'}
@@ -275,24 +275,24 @@ const ConnectionStatusPanel: React.FC<ConnectionStatusPanelProps> = ({
                     {healthInfo.responseTime}ms
                   </div>
                 </div>
-                
+
                 <div className="bg-slate-50 p-3 rounded-lg">
                   <div className="text-xs text-slate-600">عدد الاتصالات</div>
                   <div className="text-lg font-semibold text-slate-900">
                     {activeConnection.status.connectionCount}
                   </div>
                 </div>
-                
+
                 <div className="bg-slate-50 p-3 rounded-lg">
                   <div className="text-xs text-slate-600">آخر اتصال</div>
                   <div className="text-sm font-medium text-slate-900">
-                    {activeConnection.status.lastConnected 
+                    {activeConnection.status.lastConnected
                       ? formatTime(activeConnection.status.lastConnected)
                       : 'غير محدد'
                     }
                   </div>
                 </div>
-                
+
                 <div className="bg-slate-50 p-3 rounded-lg">
                   <div className="text-xs text-slate-600">نوع قاعدة البيانات</div>
                   <div className="text-sm font-medium text-slate-900 capitalize">
@@ -313,13 +313,12 @@ const ConnectionStatusPanel: React.FC<ConnectionStatusPanelProps> = ({
                   {alerts.slice(0, 3).map((alert) => (
                     <div
                       key={alert.id}
-                      className={`p-3 rounded-lg border text-sm ${
-                        alert.severity === 'critical' 
-                          ? 'bg-red-50 border-red-200 text-red-700'
-                          : alert.severity === 'high'
+                      className={`p-3 rounded-lg border text-sm ${alert.severity === 'critical'
+                        ? 'bg-red-50 border-red-200 text-red-700'
+                        : alert.severity === 'high'
                           ? 'bg-orange-50 border-orange-200 text-orange-700'
                           : 'bg-yellow-50 border-yellow-200 text-yellow-700'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start justify-between">
                         <div>
@@ -350,11 +349,10 @@ const ConnectionStatusPanel: React.FC<ConnectionStatusPanelProps> = ({
 
             {/* نتيجة آخر اختبار */}
             {lastTestResult && (
-              <div className={`p-3 rounded-lg text-sm ${
-                lastTestResult.startsWith('✓') 
-                  ? 'bg-green-50 border border-green-200 text-green-700'
-                  : 'bg-red-50 border border-red-200 text-red-700'
-              }`}>
+              <div className={`p-3 rounded-lg text-sm ${lastTestResult.startsWith('✓')
+                ? 'bg-green-50 border border-green-200 text-green-700'
+                : 'bg-red-50 border border-red-200 text-red-700'
+                }`}>
                 {lastTestResult}
               </div>
             )}
@@ -372,12 +370,11 @@ const ConnectionStatusPanel: React.FC<ConnectionStatusPanelProps> = ({
                       {healthInfo.issues.map((issue, index) => (
                         <div key={index} className="bg-slate-50 p-3 rounded-lg">
                           <div className="flex items-start gap-2">
-                            <Icons.AlertCircle className={`h-4 w-4 mt-0.5 ${
-                              issue.severity === 'critical' ? 'text-red-500' :
+                            <Icons.AlertCircle className={`h-4 w-4 mt-0.5 ${issue.severity === 'critical' ? 'text-red-500' :
                               issue.severity === 'high' ? 'text-orange-500' :
-                              issue.severity === 'medium' ? 'text-yellow-500' :
-                              'text-blue-500'
-                            }`} />
+                                issue.severity === 'medium' ? 'text-yellow-500' :
+                                  'text-blue-500'
+                              }`} />
                             <div className="flex-1">
                               <p className="text-sm font-medium text-slate-900">
                                 {issue.description}
@@ -463,14 +460,14 @@ const ConnectionStatusPanel: React.FC<ConnectionStatusPanelProps> = ({
                 )}
                 اختبار الاتصال
               </Button>
-              
+
               <Button
                 size="sm"
                 variant="danger"
                 onClick={disconnect}
                 className="flex-1"
               >
-                <Icons.WifiOff className="h-4 w-4 ml-2" />
+                <Icons.LogOut className="h-4 w-4 ml-2" />
                 قطع الاتصال
               </Button>
             </div>

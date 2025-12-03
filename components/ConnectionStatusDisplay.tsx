@@ -55,7 +55,7 @@ const ConnectionStatusDisplay: React.FC<ConnectionStatusDisplayProps> = ({ class
   useEffect(() => {
     // الاشتراك في تحديثات الحالة
     simpleManager.onStatusChange(setStatus);
-    
+
     return () => {
       // تنظيف عند إلغاء المكون
     };
@@ -66,15 +66,18 @@ const ConnectionStatusDisplay: React.FC<ConnectionStatusDisplayProps> = ({ class
       case 'cloud': return 'text-green-600 bg-green-100';
       case 'syncing': return 'text-blue-600 bg-blue-100';
       case 'offline': return 'text-amber-600 bg-amber-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'cloud': return 'متصل بالسحابة';
+      case 'syncing': return 'جاري المزامنة...';
+      case 'offline': return 'العمل محلياً';
+      default: return 'غير محدد';
     }
   };
 
   const getStatusIcon = () => {
     switch (status.mode) {
-      case 'cloud': return <Icons.CheckCircle className="h-5 w-5" />;
+      case 'cloud': return <Icons.Cloud className="h-5 w-5" />;
       case 'syncing': return <Icons.RefreshCw className="h-5 w-5 animate-spin" />;
-      case 'offline': return <Icons.WifiOff className="h-5 w-5" />;
+      case 'offline': return <Icons.Database className="h-5 w-5" />;
       default: return <Icons.AlertTriangle className="h-5 w-5" />;
     }
   };
@@ -90,13 +93,13 @@ const ConnectionStatusDisplay: React.FC<ConnectionStatusDisplayProps> = ({ class
 
   const getStatusDescription = () => {
     switch (status.mode) {
-      case 'cloud': 
+      case 'cloud':
         return 'جميع البيانات محفوظة في قاعدة البيانات السحابية';
-      case 'syncing': 
+      case 'syncing':
         return 'جاري نقل البيانات المحلية إلى السحابة...';
-      case 'offline': 
+      case 'offline':
         return 'البيانات محفوظة محلياً وسيتم مزامنتها عند عودة الاتصال';
-      default: 
+      default:
         return 'حالة غير معروفة';
     }
   };
@@ -121,7 +124,7 @@ const ConnectionStatusDisplay: React.FC<ConnectionStatusDisplayProps> = ({ class
             <p className="text-sm text-slate-600">{getStatusDescription()}</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {status.mode === 'offline' && status.pendingLocalData > 0 && (
             <Button size="sm" onClick={handleForceSync} className="flex items-center gap-2">
@@ -129,10 +132,10 @@ const ConnectionStatusDisplay: React.FC<ConnectionStatusDisplayProps> = ({ class
               مزامنة ({status.pendingLocalData})
             </Button>
           )}
-          
-          <Button 
-            size="sm" 
-            variant="ghost" 
+
+          <Button
+            size="sm"
+            variant="ghost"
             onClick={() => setShowDetails(!showDetails)}
           >
             <Icons.Info className="h-4 w-4" />
@@ -150,21 +153,21 @@ const ConnectionStatusDisplay: React.FC<ConnectionStatusDisplayProps> = ({ class
                 {status.isOnline ? 'متصل' : 'منقطع'}
               </div>
             </div>
-            
+
             <div>
               <div className="text-slate-600">قاعدة البيانات السحابية</div>
               <div className={`font-semibold ${status.isCloudConnected ? 'text-green-600' : 'text-red-600'}`}>
                 {status.isCloudConnected ? 'متصل' : 'منقطع'}
               </div>
             </div>
-            
+
             <div>
               <div className="text-slate-600">البيانات المعلقة</div>
               <div className="font-semibold text-slate-900">
                 {status.pendingLocalData} عنصر
               </div>
             </div>
-            
+
             <div>
               <div className="text-slate-600">محاولات الاتصال</div>
               <div className="font-semibold text-slate-900">
@@ -187,7 +190,7 @@ const ConnectionStatusDisplay: React.FC<ConnectionStatusDisplayProps> = ({ class
                 <div className="text-sm text-amber-800">
                   <p className="font-medium">العمل في الوضع المحلي</p>
                   <p className="mt-1">
-                    البرنامج يعمل بشكل طبيعي ويحفظ البيانات محلياً. 
+                    البرنامج يعمل بشكل طبيعي ويحفظ البيانات محلياً.
                     سيتم مزامنة جميع التغييرات تلقائياً عند عودة الاتصال بالإنترنت.
                   </p>
                 </div>
@@ -202,7 +205,7 @@ const ConnectionStatusDisplay: React.FC<ConnectionStatusDisplayProps> = ({ class
                 <div className="text-sm text-blue-800">
                   <p className="font-medium">جاري المزامنة</p>
                   <p className="mt-1">
-                    يتم الآن نقل البيانات المحلية إلى قاعدة البيانات السحابية. 
+                    يتم الآن نقل البيانات المحلية إلى قاعدة البيانات السحابية.
                     الرجاء عدم إغلاق البرنامج حتى اكتمال العملية.
                   </p>
                 </div>
@@ -217,7 +220,7 @@ const ConnectionStatusDisplay: React.FC<ConnectionStatusDisplayProps> = ({ class
                 <div className="text-sm text-green-800">
                   <p className="font-medium">متصل بالسحابة</p>
                   <p className="mt-1">
-                    جميع البيانات محفوظة بأمان في قاعدة البيانات السحابية. 
+                    جميع البيانات محفوظة بأمان في قاعدة البيانات السحابية.
                     يمكنك الوصول إليها من أي جهاز آخر.
                   </p>
                 </div>

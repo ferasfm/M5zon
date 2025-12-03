@@ -22,10 +22,10 @@ export const useInventory = (): UseInventoryReturn | null => {
 
     const fetchData = useCallback(async () => {
         if (!supabase) return;
-        
+
         setIsLoading(true);
         setLoadingMessage('جاري الاتصال بقاعدة البيانات...');
-        
+
         const fetchTable = async (tableName: string, setter: React.Dispatch<any>) => {
             const { data, error } = await supabase.from(tableName).select('*');
             if (error) {
@@ -56,7 +56,7 @@ export const useInventory = (): UseInventoryReturn | null => {
                     }));
                     setter(parsedData);
                 } else if (tableName === 'suppliers' && data) {
-                     const parsedData = data.map((supplier: any) => ({
+                    const parsedData = data.map((supplier: any) => ({
                         ...supplier,
                         contactPerson: supplier.contact_person,
                         priceAgreements: supplier.price_agreements?.map((pa: any) => ({
@@ -178,50 +178,50 @@ export const useInventory = (): UseInventoryReturn | null => {
             notification?.addNotification('لا يوجد اتصال بقاعدة البيانات', 'error');
             return;
         }
-        
+
         const tables = ['inventory_items', 'products', 'suppliers', 'clients', 'areas', 'provinces'];
-        
+
         try {
             console.log('🗑️ بدء عملية حذف جميع البيانات...');
-            
+
             for (const table of tables) {
                 console.log(`🗑️ حذف البيانات من جدول: ${table}`);
-                
+
                 // أولاً، جلب جميع الصفوف ثم حذفها
                 const { data: allRows, error: fetchError } = await supabase
                     .from(table)
                     .select('id');
-                
+
                 if (fetchError) {
                     console.error(`❌ خطأ في جلب بيانات جدول ${table}:`, fetchError);
                     throw fetchError;
                 }
-                
+
                 if (allRows && allRows.length > 0) {
                     const { error } = await supabase
                         .from(table)
                         .delete()
                         .in('id', allRows.map(row => row.id));
-                    
+
                     if (error) {
                         console.error(`❌ خطأ في حذف جدول ${table}:`, error);
                         throw error;
                     }
-                    
+
                     console.log(`✅ تم حذف ${allRows.length} صف من جدول ${table}`);
                 } else {
                     console.log(`ℹ️ جدول ${table} فارغ بالفعل`);
                 }
-                
+
                 console.log(`✅ تم حذف جدول ${table} بنجاح`);
             }
-            
+
             console.log('✅ تم حذف جميع البيانات بنجاح');
             notification?.addNotification('تم حذف جميع البيانات بنجاح.', 'success');
-            
+
             // إعادة تحميل البيانات
             await fetchData();
-            
+
         } catch (error: any) {
             console.error('❌ فشل في حذف البيانات:', error);
             notification?.addNotification(`فشل حذف البيانات: ${error.message}`, 'error');
@@ -233,7 +233,7 @@ export const useInventory = (): UseInventoryReturn | null => {
     const getSupplierById = useCallback((supplierId: string) => suppliers.find(s => s.id === supplierId), [suppliers]);
     const getClientById = useCallback((clientId: string) => clients.find(c => c.id === clientId), [clients]);
     const findItemBySerial = useCallback((serial: string) => inventoryItems.find(i => i.serialNumber.toLowerCase() === serial.toLowerCase()), [inventoryItems]);
-    
+
     const getClientFullNameById = useCallback((clientId: string) => {
         const client = clients.find(c => c.id === clientId);
         if (!client) return 'Unknown Client';
@@ -260,7 +260,10 @@ export const useInventory = (): UseInventoryReturn | null => {
             warranty_duration_value: productData.warrantyDurationValue,
             warranty_duration_unit: productData.warrantyDurationUnit,
             product_type: productData.productType,
-            category_id: productData.categoryId
+            // تحويل string فارغ إلى null لحقول UUID
+            category_id: productData.categoryId && productData.categoryId.trim() !== ''
+                ? productData.categoryId
+                : null
         };
 
         // حذف الخصائص القديمة
@@ -299,7 +302,10 @@ export const useInventory = (): UseInventoryReturn | null => {
             warranty_duration_value: updatedProduct.warrantyDurationValue,
             warranty_duration_unit: updatedProduct.warrantyDurationUnit,
             product_type: updatedProduct.productType,
-            category_id: updatedProduct.categoryId
+            // تحويل string فارغ إلى null لحقول UUID
+            category_id: updatedProduct.categoryId && updatedProduct.categoryId.trim() !== ''
+                ? updatedProduct.categoryId
+                : null
         };
 
         // حذف الخصائص القديمة
@@ -313,7 +319,7 @@ export const useInventory = (): UseInventoryReturn | null => {
         const { data, error } = await supabase.from('products').update(dbProductData).eq('id', updatedProduct.id).select();
         if (error) {
             notification?.addNotification(`فشل تحديث المنتج: ${error.message}`, 'error');
-        } else if(data) {
+        } else if (data) {
             const parsedProduct = {
                 ...data[0],
                 hasWarranty: data[0].has_warranty,
@@ -345,7 +351,7 @@ export const useInventory = (): UseInventoryReturn | null => {
     // --- INVENTORY ITEMS API ---
     const receiveItems = async (items: NewItem[]): Promise<boolean> => {
         if (!supabase) return false;
-        
+
         for (const item of items) {
             if (findItemBySerial(item.serialNumber)) {
                 notification?.addNotification(`خطأ: الرقم التسلسلي ${item.serialNumber} موجود بالفعل.`, 'error');
@@ -390,7 +396,7 @@ export const useInventory = (): UseInventoryReturn | null => {
             return false;
         }
         if (data) {
-             const parsedData = data.map((item: any) => ({
+            const parsedData = data.map((item: any) => ({
                 ...item,
                 purchaseDate: new Date(item.purchase_date),
                 dispatchDate: item.dispatch_date ? new Date(item.dispatch_date) : undefined,
@@ -416,7 +422,7 @@ export const useInventory = (): UseInventoryReturn | null => {
         }
         return false;
     };
-    
+
     const dispatchItems = async (itemIds: string[], dispatchClientId: string, dispatchDate: Date, reason: string, notes?: string, reference?: string) => {
         if (!supabase) return;
         const updates = {
@@ -460,16 +466,16 @@ export const useInventory = (): UseInventoryReturn | null => {
 
     const undoDispatch = async (itemIds: string[]): Promise<boolean> => {
         if (!supabase) return false;
-        
+
         // التحقق من أن جميع القطع في حالة dispatched
         const itemsToUndo = inventoryItems.filter(item => itemIds.includes(item.id));
         const nonDispatchedItems = itemsToUndo.filter(item => item.status !== 'dispatched');
-        
+
         if (nonDispatchedItems.length > 0) {
             notification?.addNotification('بعض القطع المحددة ليست في حالة "مصروفة". لا يمكن إلغاء التسليم.', 'error');
             return false;
         }
-        
+
         const updates = {
             status: 'in_stock',
             dispatch_client_id: null,
@@ -478,9 +484,9 @@ export const useInventory = (): UseInventoryReturn | null => {
             dispatch_notes: null,
             dispatch_reference: null
         };
-        
+
         const { data, error } = await supabase.from('inventory_items').update(updates).in('id', itemIds).select();
-        
+
         if (error) {
             notification?.addNotification(`فشل إلغاء التسليم: ${error.message}`, 'error');
             return false;
@@ -518,16 +524,16 @@ export const useInventory = (): UseInventoryReturn | null => {
 
     const editDispatch = async (itemIds: string[], updates: { dispatchClientId?: string; dispatchDate?: Date; dispatchReason?: string; dispatchNotes?: string; dispatchReference?: string }): Promise<boolean> => {
         if (!supabase) return false;
-        
+
         // التحقق من أن جميع القطع في حالة dispatched
         const itemsToEdit = inventoryItems.filter(item => itemIds.includes(item.id));
         const nonDispatchedItems = itemsToEdit.filter(item => item.status !== 'dispatched');
-        
+
         if (nonDispatchedItems.length > 0) {
             notification?.addNotification('بعض القطع المحددة ليست في حالة "مصروفة". لا يمكن تعديل التسليم.', 'error');
             return false;
         }
-        
+
         // بناء كائن التحديثات فقط للحقول المحددة
         const dbUpdates: any = {};
         if (updates.dispatchClientId !== undefined) dbUpdates.dispatch_client_id = updates.dispatchClientId;
@@ -535,9 +541,9 @@ export const useInventory = (): UseInventoryReturn | null => {
         if (updates.dispatchReason !== undefined) dbUpdates.dispatch_reason = updates.dispatchReason;
         if (updates.dispatchNotes !== undefined) dbUpdates.dispatch_notes = updates.dispatchNotes;
         if (updates.dispatchReference !== undefined) dbUpdates.dispatch_reference = updates.dispatchReference;
-        
+
         const { data, error } = await supabase.from('inventory_items').update(dbUpdates).in('id', itemIds).select();
-        
+
         if (error) {
             notification?.addNotification(`فشل تعديل التسليم: ${error.message}`, 'error');
             return false;
@@ -583,11 +589,11 @@ export const useInventory = (): UseInventoryReturn | null => {
         };
         const { data, error } = await supabase.from('inventory_items').update(updates).in('id', itemIds).select();
         if (error) {
-             notification?.addNotification(`فشل إتلاف القطع: ${error.message}`, 'error');
+            notification?.addNotification(`فشل إتلاف القطع: ${error.message}`, 'error');
         } else if (data) {
             setInventoryItems(prev => prev.map(item => {
                 const updatedItem = data.find(d => d.id === item.id);
-                return updatedItem ? {...updatedItem, purchaseDate: new Date(updatedItem.purchaseDate), scrapDate: new Date(updatedItem.scrapDate), warrantyEndDate: updatedItem.warrantyEndDate ? new Date(updatedItem.warrantyEndDate) : undefined} : item;
+                return updatedItem ? { ...updatedItem, purchaseDate: new Date(updatedItem.purchaseDate), scrapDate: new Date(updatedItem.scrapDate), warrantyEndDate: updatedItem.warrantyEndDate ? new Date(updatedItem.warrantyEndDate) : undefined } : item;
             }));
             notification?.addNotification(`تم إتلاف ${itemIds.length} قطعة بنجاح.`, 'success');
         }
@@ -669,10 +675,10 @@ export const useInventory = (): UseInventoryReturn | null => {
 
         const { error } = await supabase.from('suppliers').update({ price_agreements: updatedAgreements }).eq('id', supplierId);
         if (error) {
-             notification?.addNotification(`فشل إضافة الاتفاقية: ${error.message}`, 'error');
+            notification?.addNotification(`فشل إضافة الاتفاقية: ${error.message}`, 'error');
         } else {
-             setSuppliers(prev => prev.map(s => s.id === supplierId ? { ...s, priceAgreements: updatedAgreements } : s));
-             notification?.addNotification('تمت إضافة اتفاقية السعر.', 'success');
+            setSuppliers(prev => prev.map(s => s.id === supplierId ? { ...s, priceAgreements: updatedAgreements } : s));
+            notification?.addNotification('تمت إضافة اتفاقية السعر.', 'success');
         }
     };
     const removePriceAgreement = async (supplierId: string, productId: string) => {
@@ -683,13 +689,13 @@ export const useInventory = (): UseInventoryReturn | null => {
         const updatedAgreements = supplier.priceAgreements?.filter(pa => pa.productId !== productId);
         const { error } = await supabase.from('suppliers').update({ price_agreements: updatedAgreements }).eq('id', supplierId);
         if (error) {
-             notification?.addNotification(`فشل إزالة الاتفاقية: ${error.message}`, 'error');
+            notification?.addNotification(`فشل إزالة الاتفاقية: ${error.message}`, 'error');
         } else {
-             setSuppliers(prev => prev.map(s => s.id === supplierId ? { ...s, priceAgreements: updatedAgreements } : s));
-             notification?.addNotification('تمت إزالة اتفاقية السعر.', 'success');
+            setSuppliers(prev => prev.map(s => s.id === supplierId ? { ...s, priceAgreements: updatedAgreements } : s));
+            notification?.addNotification('تمت إزالة اتفاقية السعر.', 'success');
         }
     };
-    
+
     // --- LOCATIONS API ---
     // The implementation for these requires more thought on cascade deletes, so we'll do simple operations for now.
     // Helper function to convert snake_case to camelCase for location data
@@ -704,7 +710,7 @@ export const useInventory = (): UseInventoryReturn | null => {
         };
     };
 
-    const createApi = <T extends {id: string}>(tableName: string, state: T[], setter: React.Dispatch<React.SetStateAction<T[]>>, dependencies?: {table: string, items: any[], field: string, errorMsg: string}) => ({
+    const createApi = <T extends { id: string }>(tableName: string, state: T[], setter: React.Dispatch<React.SetStateAction<T[]>>, dependencies?: { table: string, items: any[], field: string, errorMsg: string }) => ({
         add: async (itemData: Omit<T, 'id'>) => {
             if (!supabase) return;
             const { data, error } = await supabase.from(tableName).insert([itemData]).select();
@@ -741,14 +747,14 @@ export const useInventory = (): UseInventoryReturn | null => {
     });
 
     const provincesApi = {
-        addProvince: (name: string) => createApi('provinces', provinces, setProvinces).add({name}),
+        addProvince: (name: string) => createApi('provinces', provinces, setProvinces).add({ name }),
         updateProvince: (province: Province) => createApi('provinces', provinces, setProvinces).update(province),
-        deleteProvince: (id: string) => createApi('provinces', provinces, setProvinces, {table: 'areas', items: areas, field: 'province_id', errorMsg: 'لا يمكن حذف المحافظة لأنها تحتوي على مناطق.'}).delete(id),
+        deleteProvince: (id: string) => createApi('provinces', provinces, setProvinces, { table: 'areas', items: areas, field: 'province_id', errorMsg: 'لا يمكن حذف المحافظة لأنها تحتوي على مناطق.' }).delete(id),
     };
     const areasApi = {
         addArea: async (name: string, provinceId: string) => {
             if (!supabase) return;
-            const { data, error } = await supabase.from('areas').insert([{name, province_id: provinceId}]).select();
+            const { data, error } = await supabase.from('areas').insert([{ name, province_id: provinceId }]).select();
             if (error) notification?.addNotification(`Failed to add: ${error.message}`, 'error');
             else if (data) {
                 const convertedData = convertLocationData(data[0]);
@@ -758,7 +764,7 @@ export const useInventory = (): UseInventoryReturn | null => {
         },
         updateArea: async (area: Area) => {
             if (!supabase) return;
-            const { data, error } = await supabase.from('areas').update({name: area.name, province_id: area.provinceId}).eq('id', area.id).select();
+            const { data, error } = await supabase.from('areas').update({ name: area.name, province_id: area.provinceId }).eq('id', area.id).select();
             if (error) notification?.addNotification(`Failed to update: ${error.message}`, 'error');
             else if (data) {
                 const convertedData = convertLocationData(data[0]);
@@ -766,12 +772,12 @@ export const useInventory = (): UseInventoryReturn | null => {
                 notification?.addNotification(`تم التحديث بنجاح.`, 'success');
             }
         },
-        deleteArea: (id: string) => createApi('areas', areas, setAreas, {table: 'clients', items: clients, field: 'areaId', errorMsg: 'لا يمكن حذف المنطقة لأنها تحتوي على عملاء.'}).delete(id),
+        deleteArea: (id: string) => createApi('areas', areas, setAreas, { table: 'clients', items: clients, field: 'areaId', errorMsg: 'لا يمكن حذف المنطقة لأنها تحتوي على عملاء.' }).delete(id),
     };
     const clientsApi = {
         addClient: async (name: string, areaId: string) => {
             if (!supabase) return;
-            const { data, error } = await supabase.from('clients').insert([{name, area_id: areaId}]).select();
+            const { data, error } = await supabase.from('clients').insert([{ name, area_id: areaId }]).select();
             if (error) notification?.addNotification(`Failed to add: ${error.message}`, 'error');
             else if (data) {
                 const convertedData = convertLocationData(data[0]);
@@ -781,7 +787,7 @@ export const useInventory = (): UseInventoryReturn | null => {
         },
         updateClient: async (client: Client) => {
             if (!supabase) return;
-            const { data, error } = await supabase.from('clients').update({name: client.name, area_id: client.areaId}).eq('id', client.id).select();
+            const { data, error } = await supabase.from('clients').update({ name: client.name, area_id: client.areaId }).eq('id', client.id).select();
             if (error) notification?.addNotification(`Failed to update: ${error.message}`, 'error');
             else if (data) {
                 const convertedData = convertLocationData(data[0]);
@@ -791,20 +797,20 @@ export const useInventory = (): UseInventoryReturn | null => {
         },
         deleteClient: (id: string) => {
             if (inventoryItems.some(i => i.destinationClientId === id || i.dispatchClientId === id)) {
-                 notification?.addNotification('لا يمكن حذف العميل لأنه مرتبط بحركات مخزون.', 'error');
-                 return;
+                notification?.addNotification('لا يمكن حذف العميل لأنه مرتبط بحركات مخزون.', 'error');
+                return;
             }
             createApi('clients', clients, setClients).delete(id)
         },
         getClientById,
     };
 
-    
+
     // --- DASHBOARD METRICS ---
     const getAggregatedInventoryValue = () => {
         return inventoryItems
             .filter(i => i.status === 'in_stock')
-            .reduce((total, item) => total + item.costPrice, 0);
+            .reduce((total, item) => total + Number(item.costPrice || 0), 0);
     };
 
     const getLowStockProducts = (threshold: number) => {
@@ -818,15 +824,15 @@ export const useInventory = (): UseInventoryReturn | null => {
         return products
             .map(product => ({ product, quantity: stockCounts[product.id] || 0 }))
             .filter(({ quantity }) => quantity < threshold && quantity > 0)
-            .sort((a,b) => a.quantity - b.quantity);
+            .sort((a, b) => a.quantity - b.quantity);
     };
-    
+
     const getExpiringWarranties = (days: number) => {
         const now = new Date();
         const thresholdDate = new Date();
         thresholdDate.setDate(now.getDate() + days);
 
-        return inventoryItems.filter(item => 
+        return inventoryItems.filter(item =>
             item.warrantyEndDate &&
             item.warrantyEndDate > now &&
             item.warrantyEndDate <= thresholdDate
@@ -836,12 +842,12 @@ export const useInventory = (): UseInventoryReturn | null => {
     const getScrappedValueLast30Days = () => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
-        return inventoryItems.filter(item => 
+
+        return inventoryItems.filter(item =>
             item.status === 'scrapped' &&
             item.scrapDate &&
             item.scrapDate >= thirtyDaysAgo
-        ).reduce((total, item) => total + item.costPrice, 0);
+        ).reduce((total, item) => total + Number(item.costPrice || 0), 0);
     };
 
     // --- TRANSACTION REASONS API ---
@@ -854,7 +860,7 @@ export const useInventory = (): UseInventoryReturn | null => {
             display_order: maxOrder + 1,
             is_active: true
         }).select();
-        
+
         if (error) {
             notification?.addNotification(`فشل إضافة السبب: ${error.message}`, 'error');
         } else if (data && data[0]) {
@@ -878,7 +884,7 @@ export const useInventory = (): UseInventoryReturn | null => {
             is_active: reason.isActive,
             display_order: reason.displayOrder
         }).eq('id', reason.id);
-        
+
         if (error) {
             notification?.addNotification(`فشل تحديث السبب: ${error.message}`, 'error');
         } else {
@@ -890,7 +896,7 @@ export const useInventory = (): UseInventoryReturn | null => {
     const deleteReason = async (id: string) => {
         if (!supabase) return;
         const { error } = await supabase.from('transaction_reasons').delete().eq('id', id);
-        
+
         if (error) {
             notification?.addNotification(`فشل حذف السبب: ${error.message}`, 'error');
         } else {
@@ -928,7 +934,7 @@ export const useInventory = (): UseInventoryReturn | null => {
 
     // --- CATEGORIES API ---
     const getCategoryById = useCallback((categoryId: string) => categories.find(c => c.id === categoryId), [categories]);
-    
+
     const getActiveCategories = useCallback(() => {
         return categories.filter(c => c.isActive).sort((a, b) => a.displayOrder - b.displayOrder);
     }, [categories]);
@@ -944,7 +950,7 @@ export const useInventory = (): UseInventoryReturn | null => {
             is_active: true,
             display_order: maxOrder + 1
         }).select();
-        
+
         if (error) {
             notification?.addNotification(`فشل إضافة الفئة: ${error.message}`, 'error');
         } else if (data && data[0]) {
@@ -972,7 +978,7 @@ export const useInventory = (): UseInventoryReturn | null => {
             is_active: category.isActive,
             display_order: category.displayOrder
         }).eq('id', category.id);
-        
+
         if (error) {
             notification?.addNotification(`فشل تحديث الفئة: ${error.message}`, 'error');
         } else {
@@ -988,9 +994,9 @@ export const useInventory = (): UseInventoryReturn | null => {
             notification?.addNotification('لا يمكن حذف الفئة لأنها مرتبطة بمنتجات. قم بتغيير فئة المنتجات أولاً.', 'error');
             return;
         }
-        
+
         const { error } = await supabase.from('categories').delete().eq('id', id);
-        
+
         if (error) {
             notification?.addNotification(`فشل حذف الفئة: ${error.message}`, 'error');
         } else {

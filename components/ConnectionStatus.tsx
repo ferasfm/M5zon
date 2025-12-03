@@ -54,17 +54,12 @@ const ConnectionStatus: React.FC = () => {
         <>
             {/* أيقونة الاتصال في الزاوية العلوية */}
             <div className="fixed top-4 left-4 z-50 flex items-center gap-2 bg-white p-2 rounded-lg shadow-md">
-                {isConnected ? (
-                    <Icons.Wifi className="h-5 w-5 text-green-500" />
-                ) : (
-                    <Icons.WifiOff className="h-5 w-5 text-red-500" />
-                )}
                 <span className={`text-sm font-medium ${isConnected ? 'text-green-500' : 'text-red-500'}`}>
                     {isConnected ? 'متصل' : 'غير متصل'}
                 </span>
                 {!isConnected && (
                     <Button
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         onClick={() => setShowConfigModal(true)}
                         className="mr-2"
@@ -110,7 +105,7 @@ const ConnectionStatus: React.FC = () => {
                             </div>
                             <div className="flex justify-between">
                                 <Button
-                                    variant="outline"
+                                    variant="secondary"
                                     onClick={() => setShowConfigModal(false)}
                                 >
                                     إلغاء
@@ -147,7 +142,7 @@ const ConnectionStatus: React.FC = () => {
                                     {isChecking ? 'جاري التحقق...' : 'محاولة الاتصال مرة أخرى'}
                                 </Button>
                                 <Button
-                                    variant="outline"
+                                    variant="secondary"
                                     onClick={() => setShowConfigModal(true)}
                                     className="w-full"
                                 >

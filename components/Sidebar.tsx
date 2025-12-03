@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Page } from '../types';
 import { Icons } from './icons';
 import { useSettings } from '../contexts/SettingsContext';
+import { useSupabase } from '../contexts/SupabaseContext';
 
 interface SidebarProps {
     currentPage: Page;
@@ -10,7 +11,9 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
     const { getSetting } = useSettings();
+    const { connectionType, checkConnection } = useSupabase();
     const [companyName, setCompanyName] = useState('نظام المخزون');
+    const [isConnected, setIsConnected] = useState(true);
 
     // جلب اسم الشركة من الإعدادات
     useEffect(() => {
@@ -20,6 +23,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
         };
         fetchCompanyName();
     }, [getSetting]);
+
+    // التحقق من الاتصال دورياً
+    useEffect(() => {
+        const check = async () => {
+            const status = await checkConnection();
+            setIsConnected(status);
+        };
+        check();
+        const interval = setInterval(check, 30000); // Check every 30 seconds
+        return () => clearInterval(interval);
+    }, [checkConnection]);
+
     const navItems = [
         { id: 'dashboard', label: 'لوحة التحكم', icon: <Icons.Dashboard className="h-5 w-5" /> },
         { id: 'products', label: 'المنتجات', icon: <Icons.Products className="h-5 w-5" /> },
@@ -38,15 +53,26 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
 
     return (
         <aside className="w-64 bg-white border-l border-slate-200 p-6 flex flex-col">
-            <div className="flex items-center gap-3 mb-8">
+            <div className="flex items-center gap-3 mb-6">
                 <Icons.Logo className="h-8 w-8 text-primary" />
                 <h1 className="text-xl font-bold text-dark">{companyName}</h1>
             </div>
+
+            {/* مؤشر حالة الاتصال */}
+            <div className={`mb-6 p-3 rounded-lg border flex items-center justify-between ${isConnected ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                }`}>
+                <div className="flex flex-col w-full text-center">
+                    <span className={`text-xs font-bold ${isConnected ? 'text-green-700' : 'text-red-700'}`}>
+                        {isConnected ? 'متصل' : 'غير متصل'}
+                    </span>
+                    <span className="text-[10px] text-gray-500 mt-0.5">
+                        {connectionType === 'local' ? 'سيرفر محلي' : 'قاعدة بيانات سحابية'}
+                    </span>
+                </div>
+            </div>
+
             <nav className="flex-1 space-y-2">
                 {navItems.map((item, index) => {
-                    // FIX: Use a type guard to differentiate between a navigation item and a divider.
-                    // The 'in' operator checks for the existence of an 'id' property,
-                    // which allows TypeScript to narrow the type of 'item' within each branch of the if/else statement.
                     if ('id' in item) {
                         const { id, label, icon } = item;
                         const isActive = currentPage === id;
@@ -54,11 +80,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
                             <button
                                 key={id}
                                 onClick={() => setCurrentPage(id)}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                                    isActive 
-                                    ? 'bg-primary text-white' 
-                                    : 'text-slate-700 hover:bg-slate-100'
-                                }`}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${isActive
+                                        ? 'bg-primary text-white'
+                                        : 'text-slate-700 hover:bg-slate-100'
+                                    }`}
                             >
                                 {icon}
                                 {label}
@@ -70,15 +95,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
                 })}
             </nav>
             <div className="mt-auto">
-                 <button
+                <button
                     onClick={() => setCurrentPage('settings')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                        currentPage === 'settings' 
-                        ? 'bg-slate-200 text-dark' 
-                        : 'text-slate-600 hover:bg-slate-100'
-                    }`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${currentPage === 'settings'
+                            ? 'bg-slate-200 text-dark'
+                            : 'text-slate-600 hover:bg-slate-100'
+                        }`}
                 >
-                    <Icons.Settings className="h-5 w-5"/>
+                    <Icons.Settings className="h-5 w-5" />
                     الإعدادات
                 </button>
             </div>

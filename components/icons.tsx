@@ -9,19 +9,19 @@ export const Icons = {
         <Icon {...props}><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></Icon>
     ),
     Products: (props: React.SVGProps<SVGSVGElement>) => (
-        <Icon {...props}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 21h16"/><path d="M12 11v10"/><path d="M12 3v8"/><path d="m16 7-4 4-4-4"/></Icon>
+        <Icon {...props}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 21h16" /><path d="M12 11v10" /><path d="M12 3v8" /><path d="m16 7-4 4-4-4" /></Icon>
     ),
     Receiving: (props: React.SVGProps<SVGSVGElement>) => (
-        <Icon {...props}><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/><path d="M9 22V2"/></Icon>
+        <Icon {...props}><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /><path d="M9 22V2" /></Icon>
     ),
     Dispatching: (props: React.SVGProps<SVGSVGElement>) => (
-        <Icon {...props}><path d="M8 7l-5 5 5 5"/><path d="M3 12h18"/></Icon>
+        <Icon {...props}><path d="M8 7l-5 5 5 5" /><path d="M3 12h18" /></Icon>
     ),
     Trash2: (props: React.SVGProps<SVGSVGElement>) => (
         <Icon {...props}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></Icon>
     ),
     Suppliers: (props: React.SVGProps<SVGSVGElement>) => (
-        <Icon {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></Icon>
+        <Icon {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></Icon>
     ),
     MapPin: (props: React.SVGProps<SVGSVGElement>) => (
         <Icon {...props}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></Icon>
@@ -60,10 +60,10 @@ export const Icons = {
         <Icon {...props}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></Icon>
     ),
     CalendarClock: (props: React.SVGProps<SVGSVGElement>) => (
-        <Icon {...props}><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h5"/><path d="M17.5 17.5m-4.5 0a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0-9 0"/><path d="M17.5 15.2V18l1.8 1.1"/></Icon>
+        <Icon {...props}><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5" /><path d="M16 2v4" /><path d="M8 2v4" /><path d="M3 10h5" /><path d="M17.5 17.5m-4.5 0a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0-9 0" /><path d="M17.5 15.2V18l1.8 1.1" /></Icon>
     ),
     CheckCircle: (props: React.SVGProps<SVGSVGElement>) => (
-        <Icon {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Icon>
+        <Icon {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></Icon>
     ),
     AlertCircle: (props: React.SVGProps<SVGSVGElement>) => (
         <Icon {...props}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></Icon>
@@ -151,5 +151,14 @@ export const Icons = {
     ),
     Check: (props: React.SVGProps<SVGSVGElement>) => (
         <Icon {...props}><polyline points="20 6 9 17 4 12"></polyline></Icon>
+    ),
+    Cloud: (props: React.SVGProps<SVGSVGElement>) => (
+        <Icon {...props}><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></Icon>
+    ),
+    Loader: (props: React.SVGProps<SVGSVGElement>) => (
+        <Icon {...props}><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></Icon>
+    ),
+    LogOut: (props: React.SVGProps<SVGSVGElement>) => (
+        <Icon {...props}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></Icon>
     ),
 };

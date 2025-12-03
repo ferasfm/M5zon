@@ -185,9 +185,9 @@ interface DatabaseTypeSelectorProps {
   selectedType?: 'cloud' | 'local' | null;
 }
 
-const DatabaseTypeSelector: React.FC<DatabaseTypeSelectorProps> = ({ 
-  onSelect, 
-  selectedType 
+const DatabaseTypeSelector: React.FC<DatabaseTypeSelectorProps> = ({
+  onSelect,
+  selectedType
 }) => {
   const [activeTab, setActiveTab] = useState<'cloud' | 'local'>('cloud');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -238,17 +238,16 @@ const DatabaseTypeSelector: React.FC<DatabaseTypeSelectorProps> = ({
       <div className="border-b border-slate-200">
         <nav className="flex px-6" aria-label="Tabs">
           {[
-            { id: 'cloud', name: 'سحابية', icon: Icons.Wifi, count: databaseOptions.filter(o => o.type === 'cloud').length },
+            { id: 'cloud', name: 'سحابية', icon: Icons.Cloud, count: databaseOptions.filter(o => o.type === 'cloud').length },
             { id: 'local', name: 'محلية', icon: Icons.Database, count: databaseOptions.filter(o => o.type === 'local').length }
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-4 px-4 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                activeTab === tab.id
+              className={`py-4 px-4 border-b-2 font-medium text-sm flex items-center gap-2 ${activeTab === tab.id
                   ? 'border-primary text-primary'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
+                }`}
             >
               <tab.icon className="h-4 w-4" />
               {tab.name}
@@ -266,11 +265,10 @@ const DatabaseTypeSelector: React.FC<DatabaseTypeSelectorProps> = ({
           {filteredOptions.map((option) => (
             <div
               key={option.id}
-              className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
-                selectedOption === option.id
+              className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${selectedOption === option.id
                   ? 'border-primary bg-primary/5'
                   : 'border-slate-200 hover:border-slate-300'
-              }`}
+                }`}
               onClick={() => setSelectedOption(option.id)}
             >
               {/* رأس البطاقة */}
@@ -294,8 +292,8 @@ const DatabaseTypeSelector: React.FC<DatabaseTypeSelectorProps> = ({
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-600">التسعير:</span>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPricingColor(option.pricing)}`}>
-                    {option.pricing === 'free' ? 'مجاني' : 
-                     option.pricing === 'freemium' ? 'مجاني محدود' : 'مدفوع'}
+                    {option.pricing === 'free' ? 'مجاني' :
+                      option.pricing === 'freemium' ? 'مجاني محدود' : 'مدفوع'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
