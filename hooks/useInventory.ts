@@ -273,6 +273,8 @@ export const useInventory = (): UseInventoryReturn | null => {
         delete dbProductData.warrantyDurationUnit;
         delete dbProductData.productType;
         delete dbProductData.categoryId;
+        // @ts-ignore
+        delete dbProductData.category;
 
         const { data, error } = await supabase.from('products').insert([dbProductData]).select();
         if (error) {
@@ -315,6 +317,8 @@ export const useInventory = (): UseInventoryReturn | null => {
         delete dbProductData.warrantyDurationUnit;
         delete dbProductData.productType;
         delete dbProductData.categoryId;
+        // @ts-ignore
+        delete dbProductData.category;
 
         const { data, error } = await supabase.from('products').update(dbProductData).eq('id', updatedProduct.id).select();
         if (error) {

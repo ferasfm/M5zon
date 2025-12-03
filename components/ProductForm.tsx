@@ -6,18 +6,18 @@ import { Icons } from './icons';
 import { convertArabicInput } from '../utils/converters';
 
 interface ProductFormProps {
-  product: Product | null;
-  productTypeForCreation: 'standard' | 'bundle';
-  products: Product[]; // For bundle component selection and SKU generation
-  categories: Category[]; // الفئات من قاعدة البيانات
-  onSubmit: (productData: Omit<Product, 'id'> | Product) => void;
-  onCancel: () => void;
+    product: Product | null;
+    productTypeForCreation: 'standard' | 'bundle';
+    products: Product[]; // For bundle component selection and SKU generation
+    categories: Category[]; // الفئات من قاعدة البيانات
+    onSubmit: (productData: Omit<Product, 'id'> | Product) => void;
+    onCancel: () => void;
 }
 
 const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreation, products, categories, onSubmit, onCancel }) => {
     const activeCategories = categories.filter(c => c.isActive);
     const defaultCategoryId = activeCategories.length > 0 ? activeCategories[0].id : '';
-    
+
     const [formData, setFormData] = useState({
         name: '',
         sku: '',
@@ -66,8 +66,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
 
     const handleCategoryChange = (newCategoryId: string) => {
         const selectedCategory = categories.find(c => c.id === newCategoryId);
-        setFormData(prev => ({ 
-            ...prev, 
+        setFormData(prev => ({
+            ...prev,
             categoryId: newCategoryId,
             category: selectedCategory?.name || ''
         }));
@@ -77,8 +77,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
         const { name, value, type } = e.target;
         if (type === 'checkbox') {
             const checked = (e.target as HTMLInputElement).checked;
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 [name]: checked,
                 ...(name === 'hasWarranty' && !checked && { warrantyDurationValue: 0 })
             }));
@@ -94,7 +94,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
 
         // Recalculate cost if it's a bundle
         if (formData.productType === 'bundle') {
-             const newCost = newComponents.reduce((total, comp) => {
+            const newCost = newComponents.reduce((total, comp) => {
                 const componentProduct = products.find(p => p.id === comp.productId);
                 return total + (componentProduct?.standardCostPrice || 0) * comp.quantity;
             }, 0);
@@ -127,7 +127,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         const finalData: Omit<Product, 'id'> = {
             ...formData,
             standardCostPrice: Number(formData.standardCostPrice) || 0,
@@ -142,7 +142,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
             onSubmit(finalData);
         }
     };
-    
+
     const standardProductsForSelection = products.filter(p => p.productType === 'standard' && p.id !== product?.id);
 
     const isBundle = formData.productType === 'bundle';
@@ -156,18 +156,19 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
                     <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1">{nameLabel}</label>
                     <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required />
                 </div>
-                 <div>
+                <div>
                     <label htmlFor="categoryId" className="block text-sm font-medium text-slate-700 mb-1">الفئة</label>
-                    <select 
-                        name="categoryId" 
-                        id="categoryId" 
-                        value={formData.categoryId} 
-                        onChange={(e) => handleCategoryChange(e.target.value)} 
+                    <select
+                        name="categoryId"
+                        id="categoryId"
+                        value={formData.categoryId}
+                        onChange={(e) => handleCategoryChange(e.target.value)}
                         required
                         className="w-full"
                     >
+                        <option value="" disabled>اختر الفئة...</option>
                         {activeCategories.length === 0 ? (
-                            <option value="">لا توجد فئات - أضف فئة من الإعدادات</option>
+                            <option value="" disabled>لا توجد فئات - أضف فئة من الإعدادات</option>
                         ) : (
                             activeCategories.map(cat => (
                                 <option key={cat.id} value={cat.id}>
@@ -179,10 +180,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div>
+                <div>
                     <label htmlFor="sku" className="block text-sm font-medium text-slate-700 mb-1">باركود المنتج (SKU)</label>
                     {/* FIX: Changed inputMode from "latin" to "text" to conform to HTML standards. */}
-                    <input type="text" name="sku" id="sku" value={formData.sku} onChange={handleChange} required readOnly={!!product} placeholder="استخدم قارئ الباركود هنا..." inputMode="text"/>
+                    <input type="text" name="sku" id="sku" value={formData.sku} onChange={handleChange} required readOnly={!!product} placeholder="استخدم قارئ الباركود هنا..." inputMode="text" />
                     <p className="mt-1 text-xs text-slate-500">هذا هو الباركود العام للمنتج (الموجود على العلبة)، وليس الرقم التسلسلي للقطعة.</p>
                 </div>
                 <div>
@@ -190,8 +191,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
                     <input type="number" name="standardCostPrice" id="standardCostPrice" value={formData.standardCostPrice} onChange={handleChange} required min="0" step="any" readOnly={isBundle} />
                 </div>
             </div>
-             
-             {formData.productType === 'standard' && (
+
+            {formData.productType === 'standard' && (
                 <div className="pt-2">
                     <div className="flex items-center gap-2">
                         <input type="checkbox" name="hasWarranty" id="hasWarranty" checked={formData.hasWarranty} onChange={handleChange} />
@@ -223,21 +224,21 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
                         <div key={index} className="flex items-center gap-3 p-2 bg-slate-50 rounded-md">
                             <div className="flex-1">
                                 <label className="text-xs">المنتج</label>
-                                <select 
-                                    value={comp.productId} 
+                                <select
+                                    value={comp.productId}
                                     onChange={(e) => handleComponentChange(index, 'productId', e.target.value)}
                                     className="text-sm"
                                     required
                                 >
-                                     <option value="" disabled>اختر مكون...</option>
-                                     {standardProductsForSelection.map(p => (
-                                         <option key={p.id} value={p.id}>{p.name}</option>
-                                     ))}
+                                    <option value="" disabled>اختر مكون...</option>
+                                    {standardProductsForSelection.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div>
                                 <label className="text-xs">الكمية</label>
-                                <input 
+                                <input
                                     type="number"
                                     min="1"
                                     value={comp.quantity}
@@ -246,8 +247,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, productTypeForCreati
                                     required
                                 />
                             </div>
-                             <button type="button" onClick={() => removeComponent(index)} className="text-danger hover:text-danger-hover self-end pb-1">
-                                <Icons.Trash2 className="h-4 w-4"/>
+                            <button type="button" onClick={() => removeComponent(index)} className="text-danger hover:text-danger-hover self-end pb-1">
+                                <Icons.Trash2 className="h-4 w-4" />
                             </button>
                         </div>
                     ))}
