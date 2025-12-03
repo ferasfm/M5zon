@@ -113,13 +113,13 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
             let productName: string;
             let productSku: string;
             let unitPrice: number;
-            
+
             if (item.bundleGroupId) {
                 // هذه قطعة من حزمة - نجمعها حسب الحزمة
                 key = `bundle-${item.bundleGroupId}`;
                 productName = item.bundleName || 'حزمة';
                 productSku = 'حزمة';
-                
+
                 // حساب التكلفة الإجمالية للحزمة
                 if (!acc[key]) {
                     unitPrice = 0; // سيتم حسابه لاحقاً
@@ -134,9 +134,9 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                 const product = getProductById(item.productId);
                 productName = product?.name || 'منتج غير معروف';
                 productSku = product?.sku || '-';
-                unitPrice = item.costPrice;
+                unitPrice = Number(item.costPrice || 0);
             }
-            
+
             if (!acc[key]) {
                 const productKey = item.bundleGroupId ? `bundle-${item.bundleGroupId}` : item.productId;
                 // استخدام dispatchClientId إذا كانت القطعة مصروفة، وإلا destinationClientId
@@ -155,21 +155,21 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                     bundleGroupId: item.bundleGroupId
                 };
             }
-            
+
             // إضافة القطعة للمجموعة
             acc[key].items.push(item);
-            acc[key].totalPrice += item.costPrice;
-            
+            acc[key].totalPrice += Number(item.costPrice || 0);
+
             // للمنتجات العادية، نزيد العدد
             if (!item.bundleGroupId) {
                 acc[key].quantity += 1;
             }
-            
+
             // للحزم، نحدث سعر الوحدة ليكون التكلفة الإجمالية
             if (item.bundleGroupId) {
                 acc[key].unitPrice = acc[key].totalPrice;
             }
-            
+
             return acc;
         }, {} as Record<string, FinancialClaimRow & { items: InventoryItem[]; bundleGroupId?: string }>);
 
@@ -178,17 +178,17 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
             if (row.bundleGroupId && row.items.length > 0) {
                 // هذه حزمة - نحتاج للتحقق من اكتمالها
                 const firstItem = row.items[0];
-                
+
                 // البحث عن تعريف الحزمة الأصلية
                 const bundleProduct = products.find(p => p.name === firstItem.bundleName && p.productType === 'bundle');
-                
+
                 if (bundleProduct && bundleProduct.components) {
                     // حساب المنتجات الموجودة في الحزمة المصروفة
                     const dispatchedProducts = row.items.reduce((acc, item) => {
                         acc[item.productId] = (acc[item.productId] || 0) + 1;
                         return acc;
                     }, {} as Record<string, number>);
-                    
+
                     // التحقق من المنتجات الناقصة
                     const missingProducts: string[] = [];
                     for (const component of bundleProduct.components) {
@@ -199,7 +199,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                             missingProducts.push(`${product?.name || 'منتج'} (${missing})`);
                         }
                     }
-                    
+
                     // إضافة ملاحظة تلقائية إذا كانت الحزمة ناقصة
                     if (missingProducts.length > 0) {
                         const autoNote = `⚠️ الحزمة غير مكتملة - ناقص: ${missingProducts.join(', ')}`;
@@ -314,34 +314,34 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
             ${sortedData.map(row => `
                 <tr>
                     ${visibleColumns.map(col => {
-                        let content: string | number = '';
-                        switch(col.key) {
-                            case 'product':
-                                content = `<span class="product-name">${row.productName}</span><span class="product-sku">باركود: ${row.productSku}</span>`;
-                                break;
-                            case 'quantity':
-                                content = String(row.quantity);
-                                break;
-                            case 'unitPrice':
-                                content = formatCurrency(row.unitPrice);
-                                break;
-                            case 'totalPrice':
-                                content = formatCurrency(row.totalPrice);
-                                break;
-                            case 'reason':
-                                content = row.purchaseReason;
-                                break;
-                            case 'client':
-                                content = row.clientName;
-                                break;
-                            case 'notes':
-                                content = row.notes || '-';
-                                break;
-                            default:
-                                content = '';
-                        }
-                        return `<td>${content}</td>`;
-                    }).join('')}
+            let content: string | number = '';
+            switch (col.key) {
+                case 'product':
+                    content = `<span class="product-name">${row.productName}</span><span class="product-sku">باركود: ${row.productSku}</span>`;
+                    break;
+                case 'quantity':
+                    content = String(row.quantity);
+                    break;
+                case 'unitPrice':
+                    content = formatCurrency(row.unitPrice);
+                    break;
+                case 'totalPrice':
+                    content = formatCurrency(row.totalPrice);
+                    break;
+                case 'reason':
+                    content = row.purchaseReason;
+                    break;
+                case 'client':
+                    content = row.clientName;
+                    break;
+                case 'notes':
+                    content = row.notes || '-';
+                    break;
+                default:
+                    content = '';
+            }
+            return `<td>${content}</td>`;
+        }).join('')}
                 </tr>
             `).join('')}
             <tr class="total-row">
@@ -363,7 +363,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
         if (printWindow) {
             printWindow.document.write(printContent);
             printWindow.document.close();
-            
+
             // الانتظار حتى يتم تحميل المحتوى ثم الطباعة
             printWindow.onload = () => {
                 printWindow.focus();
@@ -373,7 +373,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                 }, 250);
             };
         }
-        
+
         setIsPrintPreviewOpen(false);
     };
 
@@ -482,18 +482,18 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
     // دالة لعرض الفترة بشكل جميل
     const getPeriodText = () => {
         if (!startDate && !endDate) return 'جميع الفترات';
-        
+
         if (startDate && endDate) {
             const start = new Date(startDate);
             const end = new Date(endDate);
-            
+
             // إذا كانا في نفس الشهر والسنة
             if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
                 const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
                 return `شهر ${monthNames[start.getMonth()]}`;
             }
         }
-        
+
         return `من ${startDate || 'البداية'} إلى ${endDate || 'النهاية'}`;
     };
 
@@ -638,8 +638,8 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                                             [productKey]: e.target.value
                                         }));
                                         // تحديث البيانات مباشرة
-                                        setReportData(prev => prev ? prev.map(item => 
-                                            (item.productId === row.productId && item.productName === row.productName) 
+                                        setReportData(prev => prev ? prev.map(item =>
+                                            (item.productId === row.productId && item.productName === row.productName)
                                                 ? { ...item, notes: e.target.value }
                                                 : item
                                         ) : null);

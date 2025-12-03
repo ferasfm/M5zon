@@ -52,22 +52,7 @@ const ConnectionStatus: React.FC = () => {
 
     return (
         <>
-            {/* أيقونة الاتصال في الزاوية العلوية */}
-            <div className="fixed top-4 left-4 z-50 flex items-center gap-2 bg-white p-2 rounded-lg shadow-md">
-                <span className={`text-sm font-medium ${isConnected ? 'text-green-500' : 'text-red-500'}`}>
-                    {isConnected ? 'متصل' : 'غير متصل'}
-                </span>
-                {!isConnected && (
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setShowConfigModal(true)}
-                        className="mr-2"
-                    >
-                        إعدادات الاتصال
-                    </Button>
-                )}
-            </div>
+            {/* تم إخفاء أيقونة الاتصال العائمة بناءً على طلب المستخدم */}
 
             {/* نافذة إعدادات الاتصال */}
             {showConfigModal && (
@@ -125,7 +110,7 @@ const ConnectionStatus: React.FC = () => {
                     <Card className="w-full max-w-md">
                         <CardHeader className="text-center">
                             <div className="flex justify-center mb-4">
-                                <Icons.WifiOff className="h-16 w-16 text-red-500" />
+                                <Icons.Database className="h-16 w-16 text-red-500" />
                             </div>
                             <CardTitle className="text-xl font-bold">لا يوجد اتصال بقاعدة البيانات</CardTitle>
                         </CardHeader>

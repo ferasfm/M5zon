@@ -263,7 +263,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
 
             // تصفية حسب الموقع (محافظة/منطقة/عميل)
             const itemLocationId = getItemLocationId(item);
-            
+
             // إذا تم اختيار عميل محدد
             if (invSelectedClient !== 'all') {
                 if (itemLocationId !== invSelectedClient) return false;
@@ -316,7 +316,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             }
 
             acc[key].quantity += 1;
-            acc[key].totalCost += item.costPrice;
+            acc[key].totalCost += Number(item.costPrice || 0);
             acc[key].items.push(item);
 
             return acc;
@@ -354,7 +354,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             return row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',');
         });
 
-        const grandTotal = invReportData.reduce((acc, row) => acc + row.costPrice, 0);
+        const grandTotal = invReportData.reduce((acc, row) => acc + Number(row.costPrice || 0), 0);
         const summary = `\n\n,,,,,,"الإجمالي",${grandTotal}`;
 
         const csvContent = [headers, ...csvRows, summary].join('\n');
@@ -380,7 +380,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                 if (purchaseDate > end) return false;
             }
             if (receiveSelectedSupplier !== 'all' && item.supplierId !== receiveSelectedSupplier) return false;
-            
+
             // تصفية حسب الموقع (محافظة/منطقة/عميل)
             // إذا تم اختيار عميل محدد
             if (receiveSelectedClient !== 'all') {
@@ -408,7 +408,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             let productName: string;
             let productSku: string;
             let unitPrice: number;
-            
+
             if (item.bundleGroupId) {
                 // هذه قطعة من حزمة - نجمعها حسب الحزمة
                 key = `bundle-${item.bundleGroupId}`;
@@ -423,7 +423,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                 productSku = product?.sku || 'N/A';
                 unitPrice = item.costPrice;
             }
-            
+
             if (!acc[key]) {
                 const supplier = item.supplierId ? getSupplierById(item.supplierId) : null;
                 acc[key] = {
@@ -443,20 +443,20 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                     notes: '' // ملاحظات فارغة في البداية
                 };
             }
-            
+
             // للمنتجات العادية، نزيد العدد
             if (!item.bundleGroupId) {
                 acc[key].quantity += 1;
             }
-            
+
             // إضافة التكلفة
-            acc[key].totalPrice += item.costPrice;
-            
+            acc[key].totalPrice += Number(item.costPrice || 0);
+
             // للحزم، نحدث سعر الوحدة ليكون التكلفة الإجمالية
             if (item.bundleGroupId) {
                 acc[key].unitPrice = acc[key].totalPrice;
             }
-            
+
             if (item.purchaseDate < acc[key].purchaseDate) {
                 acc[key].purchaseDate = item.purchaseDate;
             }
@@ -480,7 +480,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                 end.setHours(23, 59, 59, 999);
                 if (dispatchDate > end) return false;
             }
-            
+
             // تصفية حسب الموقع (محافظة/منطقة/عميل)
             // إذا تم اختيار عميل محدد
             if (dispatchSelectedClient !== 'all') {
@@ -507,7 +507,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             let productName: string;
             let productSku: string;
             let unitPrice: number;
-            
+
             if (item.bundleGroupId) {
                 // هذه قطعة من حزمة - نجمعها حسب الحزمة
                 key = `bundle-${item.bundleGroupId}`;
@@ -522,7 +522,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                 productSku = product?.sku || 'N/A';
                 unitPrice = item.costPrice;
             }
-            
+
             if (!acc[key]) {
                 acc[key] = {
                     key: key,
@@ -537,20 +537,20 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                     dispatchDate: item.dispatchDate
                 };
             }
-            
+
             // للمنتجات العادية، نزيد العدد
             if (!item.bundleGroupId) {
                 acc[key].quantity += 1;
             }
-            
+
             // إضافة التكلفة
-            acc[key].totalPrice += item.costPrice;
-            
+            acc[key].totalPrice += Number(item.costPrice || 0);
+
             // للحزم، نحدث سعر الوحدة ليكون التكلفة الإجمالية
             if (item.bundleGroupId) {
                 acc[key].unitPrice = acc[key].totalPrice;
             }
-            
+
             if (item.dispatchDate < acc[key].dispatchDate) {
                 acc[key].dispatchDate = item.dispatchDate;
             }
@@ -601,11 +601,11 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             ...prev,
             [rowKey]: note
         }));
-        
+
         // تحديث البيانات مباشرة
         if (receiveReportData) {
-            setReceiveReportData(prev => 
-                prev ? prev.map(row => 
+            setReceiveReportData(prev =>
+                prev ? prev.map(row =>
                     row.key === rowKey ? { ...row, notes: note } : row
                 ) : null
             );
@@ -686,7 +686,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             }).join(',');
         });
 
-        const grandTotal = sortedReceiveData.reduce((acc, row) => acc + row.totalPrice, 0);
+        const grandTotal = sortedReceiveData.reduce((acc, row) => acc + Number(row.totalPrice || 0), 0);
 
         const summaryHeaders = Array(Math.max(0, visibleCols.length - 2)).fill('').join(',');
         const summary = `\n\n${summaryHeaders},"الإجمالي",${grandTotal}`;
@@ -726,7 +726,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
             }).join(',');
         });
 
-        const grandTotal = sortedDispatchData.reduce((acc, row) => acc + row.totalPrice, 0);
+        const grandTotal = sortedDispatchData.reduce((acc, row) => acc + Number(row.totalPrice || 0), 0);
 
         const summaryHeaders = Array(Math.max(0, visibleCols.length - 2)).fill('').join(',');
         const summary = `\n\n${summaryHeaders},"الإجمالي",${grandTotal}`;
@@ -821,7 +821,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
         if (printWindow) {
             printWindow.document.write(printContent);
             printWindow.document.close();
-            
+
             printWindow.onload = () => {
                 printWindow.focus();
                 setTimeout(() => {
@@ -846,31 +846,28 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                 <nav className="-mb-px flex gap-6" aria-label="Tabs">
                     <button
                         onClick={() => setActiveTab('inventory')}
-                        className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
-                            activeTab === 'inventory' 
-                            ? 'border-primary text-primary' 
-                            : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                        }`}
+                        className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${activeTab === 'inventory'
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            }`}
                     >
                         📊 تقرير المخزون الشامل
                     </button>
                     <button
                         onClick={() => setActiveTab('receive')}
-                        className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
-                            activeTab === 'receive' 
-                            ? 'border-primary text-primary' 
-                            : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                        }`}
+                        className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${activeTab === 'receive'
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            }`}
                     >
                         📥 تقرير استلام البضاعة
                     </button>
                     <button
                         onClick={() => setActiveTab('dispatch')}
-                        className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
-                            activeTab === 'dispatch' 
-                            ? 'border-primary text-primary' 
-                            : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                        }`}
+                        className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${activeTab === 'dispatch'
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            }`}
                     >
                         📤 تقرير صرف البضاعة
                     </button>
@@ -879,413 +876,413 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
 
             {/* Inventory Report Tab */}
             {activeTab === 'inventory' && (
-            <Card>
-                <CardHeader>
-                    <CardTitle>تقرير المخزون الشامل</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end p-4 border rounded-md bg-slate-50">
-                        <div>
-                            <label className="text-sm">فئة المنتج</label>
-                            <select value={invSelectedCategory} onChange={e => setInvSelectedCategory(e.target.value)}>
-                                <option value="all">الكل</option>
-                                {activeCategories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-sm">حالة القطعة</label>
-                            <select value={invSelectedStatus} onChange={e => setInvSelectedStatus(e.target.value)}>
-                                {Object.entries(itemStatuses).map(([key, value]) => <option key={key} value={key}>{value}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-sm">المحافظة</label>
-                            <select value={invSelectedProvinceId} onChange={e => handleInvProvinceChange(e.target.value)}>
-                                <option value="all">الكل</option>
-                                {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-sm">المنطقة</label>
-                            <select
-                                value={invSelectedAreaId}
-                                onChange={e => handleInvAreaChange(e.target.value)}
-                                disabled={invSelectedProvinceId === 'all'}
-                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                            >
-                                <option value="all">الكل</option>
-                                {invFilteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-sm">العميل</label>
-                            <select
-                                value={invSelectedClient}
-                                onChange={e => setInvSelectedClient(e.target.value)}
-                                disabled={invSelectedAreaId === 'all'}
-                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                            >
-                                <option value="all">الكل</option>
-                                {invFilteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                        </div>
-                        <Button onClick={handleGenerateInventoryReport} className="w-full">
-                            <Icons.SearchCheck className="h-4 w-4 ml-2" />
-                            إنشاء التقرير
-                        </Button>
-                    </div>
-                    {invReportData && (
-                        <div className="mt-6">
-                            <div className="flex justify-end gap-2 mb-4">
-                                <Button variant="secondary" onClick={handleExportInventoryReport}>
-                                    <Icons.Download className="h-4 w-4 ml-2" />
-                                    تصدير CSV
-                                </Button>
-                                <Button onClick={() => setIsInvPrintPreviewOpen(true)}>
-                                    <Icons.Printer className="h-4 w-4 ml-2" />
-                                    طباعة
-                                </Button>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>تقرير المخزون الشامل</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end p-4 border rounded-md bg-slate-50">
+                            <div>
+                                <label className="text-sm">فئة المنتج</label>
+                                <select value={invSelectedCategory} onChange={e => setInvSelectedCategory(e.target.value)}>
+                                    <option value="all">الكل</option>
+                                    {activeCategories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                                </select>
                             </div>
-                            <table className="w-full text-sm text-right">
-                                <thead className="text-xs text-slate-700 uppercase bg-slate-100">
-                                    <tr>
-                                        <th className="px-4 py-3 w-12"></th>
-                                        <th className="px-4 py-3">المنتج</th>
-                                        <th className="px-4 py-3">الكمية</th>
-                                        <th className="px-4 py-3">الحالة</th>
-                                        <th className="px-4 py-3">الموقع الحالي</th>
-                                        <th className="px-4 py-3">التكلفة الإجمالية</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {groupedInventoryData && groupedInventoryData.map(group => {
-                                        const isExpanded = expandedGroups.has(group.key);
-                                        return (
-                                            <React.Fragment key={group.key}>
-                                                {/* الصف المجمع */}
-                                                <tr 
-                                                    className="bg-white border-b hover:bg-slate-50 cursor-pointer"
-                                                    onClick={() => toggleGroupExpansion(group.key)}
-                                                >
-                                                    <td className="px-4 py-3 text-center">
-                                                        {isExpanded ? (
-                                                            <Icons.ChevronDown className="h-4 w-4 inline" />
-                                                        ) : (
-                                                            <Icons.ChevronRight className="h-4 w-4 inline" />
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <span className="font-semibold">{group.productName}</span>
-                                                        <span className="block text-xs font-mono text-slate-400">{group.productSku}</span>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 font-semibold">
-                                                            {group.quantity} قطعة
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-3">{itemStatuses[group.status]}</td>
-                                                    <td className="px-4 py-3">{group.location}</td>
-                                                    <td className="px-4 py-3 font-semibold">{formatCurrency(group.totalCost)}</td>
-                                                </tr>
-                                                
-                                                {/* الصفوف التفصيلية */}
-                                                {isExpanded && group.items.map(item => (
-                                                    <tr key={item.id} className="bg-slate-50 border-b">
-                                                        <td className="px-4 py-2"></td>
-                                                        <td className="px-4 py-2 text-xs text-slate-600">
-                                                            <Icons.CornerDownRight className="h-3 w-3 inline ml-1" />
-                                                            باركود: {item.serialNumber}
-                                                        </td>
-                                                        <td className="px-4 py-2 text-xs text-slate-600">1</td>
-                                                        <td className="px-4 py-2 text-xs text-slate-600">{itemStatuses[item.status]}</td>
-                                                        <td className="px-4 py-2 text-xs text-slate-600">
-                                                            {item.purchaseReason || '-'}
-                                                        </td>
-                                                        <td className="px-4 py-2 text-xs text-slate-600">{formatCurrency(item.costPrice)}</td>
-                                                    </tr>
-                                                ))}
-                                            </React.Fragment>
-                                        );
-                                    })}
-                                </tbody>
-                                <tfoot>
-                                    <tr className="bg-slate-100 font-bold text-base">
-                                        <td colSpan={5} className="px-4 py-3 text-left">الإجمالي</td>
-                                        <td className="px-4 py-3">
-                                            {formatCurrency(invReportData.reduce((acc, row) => acc + row.costPrice, 0))}
-                                        </td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                            <div>
+                                <label className="text-sm">حالة القطعة</label>
+                                <select value={invSelectedStatus} onChange={e => setInvSelectedStatus(e.target.value)}>
+                                    {Object.entries(itemStatuses).map(([key, value]) => <option key={key} value={key}>{value}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-sm">المحافظة</label>
+                                <select value={invSelectedProvinceId} onChange={e => handleInvProvinceChange(e.target.value)}>
+                                    <option value="all">الكل</option>
+                                    {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-sm">المنطقة</label>
+                                <select
+                                    value={invSelectedAreaId}
+                                    onChange={e => handleInvAreaChange(e.target.value)}
+                                    disabled={invSelectedProvinceId === 'all'}
+                                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                >
+                                    <option value="all">الكل</option>
+                                    {invFilteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-sm">العميل</label>
+                                <select
+                                    value={invSelectedClient}
+                                    onChange={e => setInvSelectedClient(e.target.value)}
+                                    disabled={invSelectedAreaId === 'all'}
+                                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                >
+                                    <option value="all">الكل</option>
+                                    {invFilteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                            <Button onClick={handleGenerateInventoryReport} className="w-full">
+                                <Icons.SearchCheck className="h-4 w-4 ml-2" />
+                                إنشاء التقرير
+                            </Button>
                         </div>
-                    )}
-                </CardContent>
-            </Card>
+                        {invReportData && (
+                            <div className="mt-6">
+                                <div className="flex justify-end gap-2 mb-4">
+                                    <Button variant="secondary" onClick={handleExportInventoryReport}>
+                                        <Icons.Download className="h-4 w-4 ml-2" />
+                                        تصدير CSV
+                                    </Button>
+                                    <Button onClick={() => setIsInvPrintPreviewOpen(true)}>
+                                        <Icons.Printer className="h-4 w-4 ml-2" />
+                                        طباعة
+                                    </Button>
+                                </div>
+                                <table className="w-full text-sm text-right">
+                                    <thead className="text-xs text-slate-700 uppercase bg-slate-100">
+                                        <tr>
+                                            <th className="px-4 py-3 w-12"></th>
+                                            <th className="px-4 py-3">المنتج</th>
+                                            <th className="px-4 py-3">الكمية</th>
+                                            <th className="px-4 py-3">الحالة</th>
+                                            <th className="px-4 py-3">الموقع الحالي</th>
+                                            <th className="px-4 py-3">التكلفة الإجمالية</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {groupedInventoryData && groupedInventoryData.map(group => {
+                                            const isExpanded = expandedGroups.has(group.key);
+                                            return (
+                                                <React.Fragment key={group.key}>
+                                                    {/* الصف المجمع */}
+                                                    <tr
+                                                        className="bg-white border-b hover:bg-slate-50 cursor-pointer"
+                                                        onClick={() => toggleGroupExpansion(group.key)}
+                                                    >
+                                                        <td className="px-4 py-3 text-center">
+                                                            {isExpanded ? (
+                                                                <Icons.ChevronDown className="h-4 w-4 inline" />
+                                                            ) : (
+                                                                <Icons.ChevronRight className="h-4 w-4 inline" />
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <span className="font-semibold">{group.productName}</span>
+                                                            <span className="block text-xs font-mono text-slate-400">{group.productSku}</span>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 font-semibold">
+                                                                {group.quantity} قطعة
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3">{itemStatuses[group.status]}</td>
+                                                        <td className="px-4 py-3">{group.location}</td>
+                                                        <td className="px-4 py-3 font-semibold">{formatCurrency(group.totalCost)}</td>
+                                                    </tr>
+
+                                                    {/* الصفوف التفصيلية */}
+                                                    {isExpanded && group.items.map(item => (
+                                                        <tr key={item.id} className="bg-slate-50 border-b">
+                                                            <td className="px-4 py-2"></td>
+                                                            <td className="px-4 py-2 text-xs text-slate-600">
+                                                                <Icons.CornerDownRight className="h-3 w-3 inline ml-1" />
+                                                                باركود: {item.serialNumber}
+                                                            </td>
+                                                            <td className="px-4 py-2 text-xs text-slate-600">1</td>
+                                                            <td className="px-4 py-2 text-xs text-slate-600">{itemStatuses[item.status]}</td>
+                                                            <td className="px-4 py-2 text-xs text-slate-600">
+                                                                {item.purchaseReason || '-'}
+                                                            </td>
+                                                            <td className="px-4 py-2 text-xs text-slate-600">{formatCurrency(item.costPrice)}</td>
+                                                        </tr>
+                                                    ))}
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr className="bg-slate-100 font-bold text-base">
+                                            <td colSpan={5} className="px-4 py-3 text-left">الإجمالي</td>
+                                            <td className="px-4 py-3">
+                                                {formatCurrency(invReportData.reduce((acc, row) => acc + row.costPrice, 0))}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             )}
 
             {/* Receive Report Tab */}
             {activeTab === 'receive' && (
-            <Card>
-                <CardHeader>
-                    <CardTitle>تقرير استلام بضاعة</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4 p-4 border rounded-md bg-slate-50">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-sm">المورد</label>
-                                <select value={receiveSelectedSupplier} onChange={e => setReceiveSelectedSupplier(e.target.value)}>
-                                    <option value="all">الكل</option>
-                                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium mb-2 block">العميل/الموقع</label>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>تقرير استلام بضاعة</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4 p-4 border rounded-md bg-slate-50">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <select value={receiveSelectedProvinceId} onChange={e => handleReceiveProvinceChange(e.target.value)}>
-                                        <option value="all">كل المحافظات</option>
-                                        {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <select
-                                        value={receiveSelectedAreaId}
-                                        onChange={e => handleReceiveAreaChange(e.target.value)}
-                                        disabled={receiveSelectedProvinceId === 'all'}
-                                        className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                    >
-                                        <option value="all">كل المناطق</option>
-                                        {receiveFilteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <select
-                                        value={receiveSelectedClient}
-                                        onChange={e => setReceiveSelectedClient(e.target.value)}
-                                        disabled={receiveSelectedAreaId === 'all'}
-                                        className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                    >
-                                        <option value="all">كل العملاء</option>
-                                        {receiveFilteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    <label className="text-sm">المورد</label>
+                                    <select value={receiveSelectedSupplier} onChange={e => setReceiveSelectedSupplier(e.target.value)}>
+                                        <option value="all">الكل</option>
+                                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                     </select>
                                 </div>
                             </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="text-sm">من تاريخ</label>
-                                <input type="date" value={receiveStartDate} onChange={e => setReceiveStartDate(e.target.value)} />
+                                <label className="text-sm font-medium mb-2 block">العميل/الموقع</label>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div>
+                                        <select value={receiveSelectedProvinceId} onChange={e => handleReceiveProvinceChange(e.target.value)}>
+                                            <option value="all">كل المحافظات</option>
+                                            {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <select
+                                            value={receiveSelectedAreaId}
+                                            onChange={e => handleReceiveAreaChange(e.target.value)}
+                                            disabled={receiveSelectedProvinceId === 'all'}
+                                            className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                        >
+                                            <option value="all">كل المناطق</option>
+                                            {receiveFilteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <select
+                                            value={receiveSelectedClient}
+                                            onChange={e => setReceiveSelectedClient(e.target.value)}
+                                            disabled={receiveSelectedAreaId === 'all'}
+                                            className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                        >
+                                            <option value="all">كل العملاء</option>
+                                            {receiveFilteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <label className="text-sm">إلى تاريخ</label>
-                                <input type="date" value={receiveEndDate} onChange={e => setReceiveEndDate(e.target.value)} />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm">من تاريخ</label>
+                                    <input type="date" value={receiveStartDate} onChange={e => setReceiveStartDate(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-sm">إلى تاريخ</label>
+                                    <input type="date" value={receiveEndDate} onChange={e => setReceiveEndDate(e.target.value)} />
+                                </div>
                             </div>
+                            <Button onClick={handleGenerateReceiveReport} className="w-full">
+                                <Icons.SearchCheck className="h-4 w-4 ml-2" />
+                                إنشاء التقرير
+                            </Button>
                         </div>
-                        <Button onClick={handleGenerateReceiveReport} className="w-full">
-                            <Icons.SearchCheck className="h-4 w-4 ml-2" />
-                            إنشاء التقرير
-                        </Button>
-                    </div>
 
-                    {receiveReportData && (
-                        <div className="mt-6">
-                            <div className="flex justify-end mb-4">
-                                <div className="relative" ref={actionsMenuRef}>
-                                    <Button variant="secondary" onClick={() => setIsActionsMenuOpen(prev => !prev)}>
-                                        <Icons.List className="h-4 w-4 ml-2" />
-                                        إجراءات
-                                    </Button>
-                                    {isActionsMenuOpen && (
-                                        <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-10">
-                                            <button onClick={() => { setIsReceiveColumnModalOpen(true); setIsActionsMenuOpen(false); }} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">تخصيص الأعمدة</button>
-                                            <button onClick={handlePrint} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">طباعة</button>
-                                            <button onClick={handleExportReceiveReport} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">تصدير CSV</button>
-                                        </div>
-                                    )}
+                        {receiveReportData && (
+                            <div className="mt-6">
+                                <div className="flex justify-end mb-4">
+                                    <div className="relative" ref={actionsMenuRef}>
+                                        <Button variant="secondary" onClick={() => setIsActionsMenuOpen(prev => !prev)}>
+                                            <Icons.List className="h-4 w-4 ml-2" />
+                                            إجراءات
+                                        </Button>
+                                        {isActionsMenuOpen && (
+                                            <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-10">
+                                                <button onClick={() => { setIsReceiveColumnModalOpen(true); setIsActionsMenuOpen(false); }} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">تخصيص الأعمدة</button>
+                                                <button onClick={handlePrint} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">طباعة</button>
+                                                <button onClick={handleExportReceiveReport} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">تصدير CSV</button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                            <table className="w-full text-sm text-right">
-                                <thead className="text-xs text-slate-700 uppercase bg-slate-100">
-                                    <tr>
-                                        {receiveColumns.filter(c => c.visible).map(col => (
-                                            <th key={col.key} className="px-4 py-3 cursor-pointer" onClick={() => requestReceiveSort(col.key)}>
-                                                {col.label}
-                                                {receiveSortConfig?.key === col.key && (receiveSortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {sortedReceiveData && sortedReceiveData.map(row => (
-                                        <tr key={row.key} className="bg-white border-b hover:bg-slate-50">
+                                <table className="w-full text-sm text-right">
+                                    <thead className="text-xs text-slate-700 uppercase bg-slate-100">
+                                        <tr>
                                             {receiveColumns.filter(c => c.visible).map(col => (
-                                                <td key={col.key} className="px-4 py-3 align-top">
-                                                    {/* FIX: Add type assertion to the object literal to help TypeScript infer the correct type and avoid 'unknown' type errors. */}
-                                                    {
-                                                        ({
-                                                            product: <div><span className="font-semibold">{row.productName}</span><span className="block text-xs font-mono text-slate-400">{row.productSku}</span></div>,
-                                                            quantity: row.quantity,
-                                                            cost: formatCurrency(row.unitPrice),
-                                                            totalPrice: formatCurrency(row.totalPrice),
-                                                            reason: row.purchaseReason,
-                                                            client: row.clientName,
-                                                            supplier: row.supplierName,
-                                                            date: formatDate(row.purchaseDate),
-                                                            serial: "N/A",
-                                                            notes: (
-                                                                <textarea
-                                                                    value={row.notes || ''}
-                                                                    onChange={(e) => handleNoteChange(row.key, e.target.value)}
-                                                                    placeholder="أضف ملاحظة..."
-                                                                    className="w-full min-h-[60px] p-2 text-sm border rounded resize-y"
-                                                                    rows={2}
-                                                                />
-                                                            )
-                                                        } as Record<ReceiveReportColumnKey, ReactNode>)[col.key]
-                                                    }
-                                                </td>
+                                                <th key={col.key} className="px-4 py-3 cursor-pointer" onClick={() => requestReceiveSort(col.key)}>
+                                                    {col.label}
+                                                    {receiveSortConfig?.key === col.key && (receiveSortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
+                                                </th>
                                             ))}
                                         </tr>
-                                    ))}
-                                </tbody>
-                                <tfoot>
-                                    <tr className="bg-slate-100 font-bold text-base">
-                                        <td colSpan={Math.max(1, receiveColumns.filter(c => c.visible).length - 1)} className="px-4 py-3 text-left">الإجمالي</td>
-                                        <td className="px-4 py-3">
-                                            {sortedReceiveData &&
-                                                formatCurrency(sortedReceiveData.reduce((acc, row) => acc + row.totalPrice, 0))
-                                            }
-                                        </td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                    </thead>
+                                    <tbody>
+                                        {sortedReceiveData && sortedReceiveData.map(row => (
+                                            <tr key={row.key} className="bg-white border-b hover:bg-slate-50">
+                                                {receiveColumns.filter(c => c.visible).map(col => (
+                                                    <td key={col.key} className="px-4 py-3 align-top">
+                                                        {/* FIX: Add type assertion to the object literal to help TypeScript infer the correct type and avoid 'unknown' type errors. */}
+                                                        {
+                                                            ({
+                                                                product: <div><span className="font-semibold">{row.productName}</span><span className="block text-xs font-mono text-slate-400">{row.productSku}</span></div>,
+                                                                quantity: row.quantity,
+                                                                cost: formatCurrency(row.unitPrice),
+                                                                totalPrice: formatCurrency(row.totalPrice),
+                                                                reason: row.purchaseReason,
+                                                                client: row.clientName,
+                                                                supplier: row.supplierName,
+                                                                date: formatDate(row.purchaseDate),
+                                                                serial: "N/A",
+                                                                notes: (
+                                                                    <textarea
+                                                                        value={row.notes || ''}
+                                                                        onChange={(e) => handleNoteChange(row.key, e.target.value)}
+                                                                        placeholder="أضف ملاحظة..."
+                                                                        className="w-full min-h-[60px] p-2 text-sm border rounded resize-y"
+                                                                        rows={2}
+                                                                    />
+                                                                )
+                                                            } as Record<ReceiveReportColumnKey, ReactNode>)[col.key]
+                                                        }
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr className="bg-slate-100 font-bold text-base">
+                                            <td colSpan={Math.max(1, receiveColumns.filter(c => c.visible).length - 1)} className="px-4 py-3 text-left">الإجمالي</td>
+                                            <td className="px-4 py-3">
+                                                {sortedReceiveData &&
+                                                    formatCurrency(sortedReceiveData.reduce((acc, row) => acc + row.totalPrice, 0))
+                                                }
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             )}
 
             {/* Dispatch Report Tab */}
             {activeTab === 'dispatch' && (
-            <Card>
-                <CardHeader>
-                    <CardTitle>تقرير صرف بضاعة</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4 p-4 border rounded-md bg-slate-50">
-                        <div>
-                            <label className="text-sm font-medium mb-2 block">العميل/الموقع</label>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div>
-                                    <select value={dispatchSelectedProvinceId} onChange={e => handleDispatchProvinceChange(e.target.value)}>
-                                        <option value="all">كل المحافظات</option>
-                                        {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <select
-                                        value={dispatchSelectedAreaId}
-                                        onChange={e => handleDispatchAreaChange(e.target.value)}
-                                        disabled={dispatchSelectedProvinceId === 'all'}
-                                        className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                    >
-                                        <option value="all">كل المناطق</option>
-                                        {dispatchFilteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <select
-                                        value={dispatchSelectedClient}
-                                        onChange={e => setDispatchSelectedClient(e.target.value)}
-                                        disabled={dispatchSelectedAreaId === 'all'}
-                                        className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                    >
-                                        <option value="all">كل العملاء</option>
-                                        {dispatchFilteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>تقرير صرف بضاعة</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4 p-4 border rounded-md bg-slate-50">
                             <div>
-                                <label className="text-sm">من تاريخ</label>
-                                <input type="date" value={dispatchStartDate} onChange={e => setDispatchStartDate(e.target.value)} />
+                                <label className="text-sm font-medium mb-2 block">العميل/الموقع</label>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div>
+                                        <select value={dispatchSelectedProvinceId} onChange={e => handleDispatchProvinceChange(e.target.value)}>
+                                            <option value="all">كل المحافظات</option>
+                                            {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <select
+                                            value={dispatchSelectedAreaId}
+                                            onChange={e => handleDispatchAreaChange(e.target.value)}
+                                            disabled={dispatchSelectedProvinceId === 'all'}
+                                            className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                        >
+                                            <option value="all">كل المناطق</option>
+                                            {dispatchFilteredAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <select
+                                            value={dispatchSelectedClient}
+                                            onChange={e => setDispatchSelectedClient(e.target.value)}
+                                            disabled={dispatchSelectedAreaId === 'all'}
+                                            className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                        >
+                                            <option value="all">كل العملاء</option>
+                                            {dispatchFilteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <label className="text-sm">إلى تاريخ</label>
-                                <input type="date" value={dispatchEndDate} onChange={e => setDispatchEndDate(e.target.value)} />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm">من تاريخ</label>
+                                    <input type="date" value={dispatchStartDate} onChange={e => setDispatchStartDate(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-sm">إلى تاريخ</label>
+                                    <input type="date" value={dispatchEndDate} onChange={e => setDispatchEndDate(e.target.value)} />
+                                </div>
                             </div>
+                            <Button onClick={handleGenerateDispatchReport} className="w-full">
+                                <Icons.SearchCheck className="h-4 w-4 ml-2" />
+                                إنشاء التقرير
+                            </Button>
                         </div>
-                        <Button onClick={handleGenerateDispatchReport} className="w-full">
-                            <Icons.SearchCheck className="h-4 w-4 ml-2" />
-                            إنشاء التقرير
-                        </Button>
-                    </div>
 
-                    {dispatchReportData && (
-                        <div className="mt-6">
-                            <div className="flex justify-end mb-4">
-                                <div className="relative" ref={dispatchActionsMenuRef}>
-                                    <Button variant="secondary" onClick={() => setIsDispatchActionsMenuOpen(prev => !prev)}>
-                                        <Icons.List className="h-4 w-4 ml-2" />
-                                        إجراءات
-                                    </Button>
-                                    {isDispatchActionsMenuOpen && (
-                                        <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-10">
-                                            <button onClick={() => { setIsDispatchColumnModalOpen(true); setIsDispatchActionsMenuOpen(false); }} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">تخصيص الأعمدة</button>
-                                            <button onClick={() => { setIsDispatchPrintPreviewOpen(true); setIsDispatchActionsMenuOpen(false); }} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">طباعة</button>
-                                            <button onClick={handleExportDispatchReport} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">تصدير CSV</button>
-                                        </div>
-                                    )}
+                        {dispatchReportData && (
+                            <div className="mt-6">
+                                <div className="flex justify-end mb-4">
+                                    <div className="relative" ref={dispatchActionsMenuRef}>
+                                        <Button variant="secondary" onClick={() => setIsDispatchActionsMenuOpen(prev => !prev)}>
+                                            <Icons.List className="h-4 w-4 ml-2" />
+                                            إجراءات
+                                        </Button>
+                                        {isDispatchActionsMenuOpen && (
+                                            <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-10">
+                                                <button onClick={() => { setIsDispatchColumnModalOpen(true); setIsDispatchActionsMenuOpen(false); }} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">تخصيص الأعمدة</button>
+                                                <button onClick={() => { setIsDispatchPrintPreviewOpen(true); setIsDispatchActionsMenuOpen(false); }} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">طباعة</button>
+                                                <button onClick={handleExportDispatchReport} className="w-full text-right block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">تصدير CSV</button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                            <table className="w-full text-sm text-right">
-                                <thead className="text-xs text-slate-700 uppercase bg-slate-100">
-                                    <tr>
-                                        {dispatchColumns.filter(c => c.visible).map(col => (
-                                            <th key={col.key} className="px-4 py-3 cursor-pointer" onClick={() => requestDispatchSort(col.key)}>
-                                                {col.label}
-                                                {dispatchSortConfig?.key === col.key && (dispatchSortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {sortedDispatchData && sortedDispatchData.map(row => (
-                                        <tr key={row.key} className="bg-white border-b hover:bg-slate-50">
+                                <table className="w-full text-sm text-right">
+                                    <thead className="text-xs text-slate-700 uppercase bg-slate-100">
+                                        <tr>
                                             {dispatchColumns.filter(c => c.visible).map(col => (
-                                                <td key={col.key} className="px-4 py-3 align-top">
-                                                    {
-                                                        ({
-                                                            product: <div><span className="font-semibold">{row.productName}</span><span className="block text-xs font-mono text-slate-400">{row.productSku}</span></div>,
-                                                            quantity: row.quantity,
-                                                            cost: formatCurrency(row.unitPrice),
-                                                            totalPrice: formatCurrency(row.totalPrice),
-                                                            client: row.clientName,
-                                                            date: formatDate(row.dispatchDate),
-                                                        } as Record<DispatchReportColumnKey, ReactNode>)[col.key]
-                                                    }
-                                                </td>
+                                                <th key={col.key} className="px-4 py-3 cursor-pointer" onClick={() => requestDispatchSort(col.key)}>
+                                                    {col.label}
+                                                    {dispatchSortConfig?.key === col.key && (dispatchSortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
+                                                </th>
                                             ))}
                                         </tr>
-                                    ))}
-                                </tbody>
-                                <tfoot>
-                                    <tr className="bg-slate-100 font-bold text-base">
-                                        <td colSpan={Math.max(1, dispatchColumns.filter(c => c.visible).length - 1)} className="px-4 py-3 text-left">الإجمالي</td>
-                                        <td className="px-4 py-3">
-                                            {sortedDispatchData &&
-                                                formatCurrency(sortedDispatchData.reduce((acc, row) => acc + row.totalPrice, 0))}
-                                        </td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                    </thead>
+                                    <tbody>
+                                        {sortedDispatchData && sortedDispatchData.map(row => (
+                                            <tr key={row.key} className="bg-white border-b hover:bg-slate-50">
+                                                {dispatchColumns.filter(c => c.visible).map(col => (
+                                                    <td key={col.key} className="px-4 py-3 align-top">
+                                                        {
+                                                            ({
+                                                                product: <div><span className="font-semibold">{row.productName}</span><span className="block text-xs font-mono text-slate-400">{row.productSku}</span></div>,
+                                                                quantity: row.quantity,
+                                                                cost: formatCurrency(row.unitPrice),
+                                                                totalPrice: formatCurrency(row.totalPrice),
+                                                                client: row.clientName,
+                                                                date: formatDate(row.dispatchDate),
+                                                            } as Record<DispatchReportColumnKey, ReactNode>)[col.key]
+                                                        }
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr className="bg-slate-100 font-bold text-base">
+                                            <td colSpan={Math.max(1, dispatchColumns.filter(c => c.visible).length - 1)} className="px-4 py-3 text-left">الإجمالي</td>
+                                            <td className="px-4 py-3">
+                                                {sortedDispatchData &&
+                                                    formatCurrency(sortedDispatchData.reduce((acc, row) => acc + row.totalPrice, 0))}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             )}
 
             {/* Modals for Receive Report */}
