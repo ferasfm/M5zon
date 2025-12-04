@@ -6,7 +6,8 @@ import { Icons } from './icons';
 import { Modal } from './ui/Modal';
 import PriceAgreementForm from './PriceAgreementForm';
 import { useNotification } from '../contexts/NotificationContext';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatDate } from '../utils/formatters';
+import { formatCurrency } from '../utils/currencyHelper';
 
 
 interface SupplierProfileProps {

@@ -7,7 +7,7 @@ import { Icons } from './icons';
 import { Modal } from './ui/Modal';
 import ProductForm from './ProductForm';
 import { convertArabicInput } from '../utils/converters';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency } from '../utils/currencyHelper';
 
 const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
     const { products, categories, addProduct, updateProduct, deleteProduct, inventoryItems, getProductById } = inventory;

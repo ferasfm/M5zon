@@ -5,7 +5,7 @@ import { Button } from './ui/Button';
 import { Icons } from './icons';
 import InventoryItemForm from './InventoryItemForm';
 import { useNotification } from '../contexts/NotificationContext';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency } from '../utils/currencyHelper';
 
 // PURCHASE_REASONS now comes from database via reasonsApi
 

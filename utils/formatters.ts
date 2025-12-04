@@ -6,19 +6,32 @@
 /**
  * تنسيق الأرقام كعملة بأرقام إنجليزية
  */
-export const formatCurrency = (amount: number, currency: string = 'SAR'): string => {
+export const formatCurrency = (amount: number, currencyName?: string): string => {
   // تنسيق الرقم مع فواصل
   const formatted = amount.toLocaleString('en-US', { 
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
   
-  // إضافة رمز العملة حسب النوع
-  const currencySymbols: Record<string, string> = {
+  // خريطة العملات - تدعم الاسم الكامل والرمز
+  const currencyMap: Record<string, string> = {
+    // بالعربي
+    'شيكل': 'شيكل',
+    'ريال سعودي': 'ر.س',
+    'دولار': '$',
+    'يورو': '€',
+    'جنيه مصري': 'ج.م',
+    'درهم إماراتي': 'د.إ',
+    'دينار كويتي': 'د.ك',
+    'ريال قطري': 'ر.ق',
+    'دينار بحريني': 'د.ب',
+    'ريال عماني': 'ر.ع',
+    'دينار أردني': 'د.أ',
+    // بالإنجليزي
     'SAR': 'ر.س',
     'USD': '$',
     'EUR': '€',
-    'ILS': '₪',
+    'ILS': 'شيكل',
     'EGP': 'ج.م',
     'AED': 'د.إ',
     'KWD': 'د.ك',
@@ -28,7 +41,10 @@ export const formatCurrency = (amount: number, currency: string = 'SAR'): string
     'JOD': 'د.أ'
   };
   
-  const symbol = currencySymbols[currency] || currency;
+  // استخدام العملة من المعامل أو القيمة الافتراضية
+  const currency = currencyName || 'شيكل';
+  const symbol = currencyMap[currency] || currency;
+  
   return `${formatted} ${symbol}`;
 };
 

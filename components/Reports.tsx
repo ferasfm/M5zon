@@ -5,7 +5,8 @@ import { Button } from './ui/Button';
 import { Icons } from './icons';
 import { Modal } from './ui/Modal';
 import { useSettings } from '../contexts/SettingsContext';
-import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
+import { formatDate, formatDateTime } from '../utils/formatters';
+import { formatCurrency } from '../utils/currencyHelper';
 
 // New type for aggregated receiving report rows
 interface AggregatedReceiveRow {
@@ -1009,7 +1010,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                         <tr className="bg-slate-100 font-bold text-base">
                                             <td colSpan={5} className="px-4 py-3 text-left">الإجمالي</td>
                                             <td className="px-4 py-3">
-                                                {formatCurrency(invReportData.reduce((acc, row) => acc + row.costPrice, 0))}
+                                                {formatCurrency(invReportData.reduce((acc, row) => acc + Number(row.costPrice || 0), 0))}
                                             </td>
                                         </tr>
                                     </tfoot>
@@ -1152,7 +1153,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                             <td colSpan={Math.max(1, receiveColumns.filter(c => c.visible).length - 1)} className="px-4 py-3 text-left">الإجمالي</td>
                                             <td className="px-4 py-3">
                                                 {sortedReceiveData &&
-                                                    formatCurrency(sortedReceiveData.reduce((acc, row) => acc + row.totalPrice, 0))
+                                                    formatCurrency(sortedReceiveData.reduce((acc, row) => acc + Number(row.totalPrice || 0), 0))
                                                 }
                                             </td>
                                         </tr>
@@ -1274,7 +1275,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                             <td colSpan={Math.max(1, dispatchColumns.filter(c => c.visible).length - 1)} className="px-4 py-3 text-left">الإجمالي</td>
                                             <td className="px-4 py-3">
                                                 {sortedDispatchData &&
-                                                    formatCurrency(sortedDispatchData.reduce((acc, row) => acc + row.totalPrice, 0))}
+                                                    formatCurrency(sortedDispatchData.reduce((acc, row) => acc + Number(row.totalPrice || 0), 0))}
                                             </td>
                                         </tr>
                                     </tfoot>

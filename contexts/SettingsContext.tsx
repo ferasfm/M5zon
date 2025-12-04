@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { browserSettingsService } from '../services/browserSettingsService';
+import { setCurrentCurrency } from '../utils/currencyHelper';
 
 interface Settings {
   [key: string]: string;
@@ -25,6 +26,10 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     try {
       const settingsObject = await browserSettingsService.getAllSettings();
       setSettings(settingsObject);
+      
+      // تحديث العملة العامة
+      const currency = settingsObject.currency || 'شيكل';
+      setCurrentCurrency(currency);
     } catch (error) {
       console.error('Error fetching settings:', error);
     } finally {
@@ -43,6 +48,11 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
           ...prev,
           [key]: value
         }));
+        
+        // إذا تم تحديث العملة، حدث العملة العامة
+        if (key === 'currency') {
+          setCurrentCurrency(value);
+        }
       }
 
       return success;

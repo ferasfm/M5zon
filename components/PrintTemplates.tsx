@@ -6,7 +6,8 @@ import { Icons } from './icons';
 import { Modal } from './ui/Modal';
 import { useNotification } from '../contexts/NotificationContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
+import { formatDate, formatDateTime } from '../utils/formatters';
+import { formatCurrency } from '../utils/currencyHelper';
 
 // Data structure for the aggregated report row
 interface FinancialClaimRow {
@@ -459,7 +460,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
             }).join(',');
         });
 
-        const grandTotal = sortedData.reduce((acc, row) => acc + row.totalPrice, 0);
+        const grandTotal = sortedData.reduce((acc, row) => acc + Number(row.totalPrice || 0), 0);
 
         const summaryHeaders = Array(Math.max(0, visibleColumns.length - 2)).fill('').join(',');
         const summary = `\n\n${summaryHeaders},${escapeCsvField('الإجمالي')},${escapeCsvField(grandTotal)}`;
@@ -477,7 +478,7 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
 
     const visibleColumns = columns.filter(c => c.visible);
     const selectedSupplier = getSupplierById(selectedSupplierId);
-    const grandTotal = sortedData ? sortedData.reduce((acc, group) => acc + group.totalPrice, 0) : 0;
+    const grandTotal = sortedData ? sortedData.reduce((acc, group) => acc + Number(group.totalPrice || 0), 0) : 0;
 
     // دالة لعرض الفترة بشكل جميل
     const getPeriodText = () => {

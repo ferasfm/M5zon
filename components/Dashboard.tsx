@@ -2,7 +2,8 @@ import React from 'react';
 import { InventoryItem, UseInventoryReturn } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Icons } from './icons';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatDate } from '../utils/formatters';
+import { formatCurrency } from '../utils/currencyHelper';
 
 const Dashboard: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
     const { 
