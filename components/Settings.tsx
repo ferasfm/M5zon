@@ -18,7 +18,7 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ inventory }) => {
-    const { settings, wipeAllData } = inventory;
+    const { settings, wipeAllData, products, categories } = inventory;
     const { getSetting, updateSetting } = useSettings();
     const [activeTab, setActiveTab] = useState<'general' | 'categories' | 'reasons' | 'system' | 'data'>('general');
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -28,6 +28,7 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
     const [taxRate, setTaxRate] = useState('');
     const [lowStockThreshold, setLowStockThreshold] = useState('');
     const [warrantyDaysThreshold, setWarrantyDaysThreshold] = useState('');
+    const [isUpdatingCategories, setIsUpdatingCategories] = useState(false);
 
     const RESET_CONFIRMATION_WORD = 'حذف';
 
@@ -73,6 +74,44 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
             setResetConfirmationText('');
         } else {
             console.log('❌ كلمة التأكيد غير صحيحة:', resetConfirmationText, 'المطلوب:', RESET_CONFIRMATION_WORD);
+        }
+    };
+
+    const updateAllProductCategories = async () => {
+        setIsUpdatingCategories(true);
+        try {
+            console.log('🔄 بدء تحديث فئات المنتجات...');
+            console.log(`📊 إجمالي المنتجات: ${products.length}`);
+            console.log(`📂 إجمالي الفئات: ${categories.length}`);
+            
+            // استخدام الدالة المحسّنة من categoriesApi
+            const result = await inventory.categoriesApi.fixOldProductsCategories();
+            
+            if (result.success) {
+                console.log('✅ اكتمل التحديث');
+                
+                let message = `تم التحديث بنجاح!\n\n`;
+                message += `📊 الإحصائيات:\n`;
+                message += `• تم إصلاح ${result.updated} منتج قديم\n`;
+                
+                if (result.errors.length > 0) {
+                    message += `\n⚠️ تحذيرات (${result.errors.length}):\n`;
+                    message += result.errors.slice(0, 5).join('\n');
+                    if (result.errors.length > 5) {
+                        message += `\n... و ${result.errors.length - 5} تحذير آخر`;
+                    }
+                    console.warn('⚠️ التحذيرات:', result.errors);
+                }
+                
+                alert(message);
+            } else {
+                throw new Error(result.errors.join(', '));
+            }
+        } catch (error: any) {
+            console.error('❌ خطأ في تحديث الفئات:', error);
+            alert(`حدث خطأ أثناء تحديث الفئات:\n${error.message}\n\nراجع Console للتفاصيل.`);
+        } finally {
+            setIsUpdatingCategories(false);
         }
     };
 
@@ -240,7 +279,49 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
 
                 {/* Categories Manager Tab */}
                 {activeTab === 'categories' && (
+                <>
+                <Card className="border-blue-200 bg-blue-50">
+                    <CardHeader>
+                        <CardTitle className="text-blue-900">🔄 تحديث وإصلاح فئات المنتجات</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                    <h4 className="font-semibold text-dark mb-2">مزامنة وإصلاح الفئات</h4>
+                                    <div className="text-sm text-slate-600 space-y-1">
+                                        <p>✅ تحديث أسماء الفئات للمنتجات الحالية</p>
+                                        <p>🔗 ربط المنتجات القديمة بالفئات الجديدة</p>
+                                        <p>📊 عرض تقرير مفصل بالتغييرات</p>
+                                    </div>
+                                </div>
+                                <Button 
+                                    onClick={updateAllProductCategories}
+                                    disabled={isUpdatingCategories}
+                                    variant="secondary"
+                                    className="ml-4"
+                                >
+                                    {isUpdatingCategories ? (
+                                        <>
+                                            <Icons.RefreshCw className="h-4 w-4 ml-2 animate-spin" />
+                                            جاري التحديث...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Icons.RefreshCw className="h-4 w-4 ml-2" />
+                                            تحديث الآن
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                            <div className="bg-blue-100 border border-blue-300 rounded-md p-3 text-xs text-blue-800">
+                                💡 <strong>نصيحة:</strong> استخدم هذه الأداة بعد تعديل أسماء الفئات أو لإصلاح المنتجات القديمة
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
                 <CategoriesManager inventory={inventory} />
+                </>
                 )}
 
                 {/* Reasons Manager Tab */}

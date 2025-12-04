@@ -73,7 +73,8 @@ export const useInventory = (): UseInventoryReturn | null => {
                         warrantyDurationValue: product.warranty_duration_value,
                         warrantyDurationUnit: product.warranty_duration_unit,
                         productType: product.product_type,
-                        categoryId: product.category_id
+                        categoryId: product.category_id,
+                        category: product.category
                     }));
                     setter(parsedData);
                 } else if (tableName === 'provinces' && data) {
@@ -252,6 +253,11 @@ export const useInventory = (): UseInventoryReturn | null => {
     // --- PRODUCTS API ---
     const addProduct = async (productData: Omit<Product, 'id'>) => {
         if (!supabase) return;
+        
+        // الحصول على اسم الفئة من معرف الفئة
+        const selectedCategory = categories.find(c => c.id === productData.categoryId);
+        const categoryName = selectedCategory?.name || productData.category || '';
+
         // تحويل أسماء الخصائص لتتوافق مع قاعدة البيانات
         const dbProductData = {
             ...productData,
@@ -260,6 +266,8 @@ export const useInventory = (): UseInventoryReturn | null => {
             warranty_duration_value: productData.warrantyDurationValue,
             warranty_duration_unit: productData.warrantyDurationUnit,
             product_type: productData.productType,
+            // تحديث اسم الفئة من الفئات المتاحة
+            category: categoryName,
             // تحويل string فارغ إلى null لحقول UUID
             category_id: productData.categoryId && productData.categoryId.trim() !== ''
                 ? productData.categoryId
@@ -273,8 +281,6 @@ export const useInventory = (): UseInventoryReturn | null => {
         delete dbProductData.warrantyDurationUnit;
         delete dbProductData.productType;
         delete dbProductData.categoryId;
-        // @ts-ignore
-        delete dbProductData.category;
 
         const { data, error } = await supabase.from('products').insert([dbProductData]).select();
         if (error) {
@@ -287,7 +293,8 @@ export const useInventory = (): UseInventoryReturn | null => {
                 warrantyDurationValue: data[0].warranty_duration_value,
                 warrantyDurationUnit: data[0].warranty_duration_unit,
                 productType: data[0].product_type,
-                categoryId: data[0].category_id
+                categoryId: data[0].category_id,
+                category: data[0].category
             };
             setProducts(prev => [...prev, parsedProduct]);
             notification?.addNotification(`تمت إضافة المنتج "${data[0].name}" بنجاح.`, 'success');
@@ -295,6 +302,18 @@ export const useInventory = (): UseInventoryReturn | null => {
     };
     const updateProduct = async (updatedProduct: Product) => {
         if (!supabase) return;
+
+        // الحصول على اسم الفئة من معرف الفئة
+        const selectedCategory = categories.find(c => c.id === updatedProduct.categoryId);
+        const categoryName = selectedCategory?.name || updatedProduct.category || '';
+
+        console.log('🔄 تحديث المنتج:', {
+            productName: updatedProduct.name,
+            categoryId: updatedProduct.categoryId,
+            oldCategory: updatedProduct.category,
+            newCategory: categoryName,
+            selectedCategory: selectedCategory?.name
+        });
 
         // تحويل أسماء الخصائص لتتوافق مع قاعدة البيانات
         const dbProductData = {
@@ -304,6 +323,8 @@ export const useInventory = (): UseInventoryReturn | null => {
             warranty_duration_value: updatedProduct.warrantyDurationValue,
             warranty_duration_unit: updatedProduct.warrantyDurationUnit,
             product_type: updatedProduct.productType,
+            // تحديث اسم الفئة من الفئات المتاحة
+            category: categoryName,
             // تحويل string فارغ إلى null لحقول UUID
             category_id: updatedProduct.categoryId && updatedProduct.categoryId.trim() !== ''
                 ? updatedProduct.categoryId
@@ -317,8 +338,6 @@ export const useInventory = (): UseInventoryReturn | null => {
         delete dbProductData.warrantyDurationUnit;
         delete dbProductData.productType;
         delete dbProductData.categoryId;
-        // @ts-ignore
-        delete dbProductData.category;
 
         const { data, error } = await supabase.from('products').update(dbProductData).eq('id', updatedProduct.id).select();
         if (error) {
@@ -331,7 +350,8 @@ export const useInventory = (): UseInventoryReturn | null => {
                 warrantyDurationValue: data[0].warranty_duration_value,
                 warrantyDurationUnit: data[0].warranty_duration_unit,
                 productType: data[0].product_type,
-                categoryId: data[0].category_id
+                categoryId: data[0].category_id,
+                category: data[0].category
             };
             setProducts(prev => prev.map(p => p.id === updatedProduct.id ? parsedProduct : p));
             notification?.addNotification(`تم تحديث المنتج "${updatedProduct.name}" بنجاح.`, 'success');
@@ -1009,12 +1029,81 @@ export const useInventory = (): UseInventoryReturn | null => {
         }
     };
 
+    // دالة لإصلاح المنتجات القديمة مباشرة من قاعدة البيانات
+    const fixOldProductsCategories = async (): Promise<{ success: boolean; updated: number; errors: string[] }> => {
+        if (!supabase) return { success: false, updated: 0, errors: ['لا يوجد اتصال بقاعدة البيانات'] };
+
+        try {
+            let updatedCount = 0;
+            const errors: string[] = [];
+
+            // جلب جميع المنتجات القديمة (بدون category_id)
+            const { data: oldProducts, error: fetchError } = await supabase
+                .from('products')
+                .select('*')
+                .is('category_id', null)
+                .not('category', 'is', null);
+
+            if (fetchError) {
+                return { success: false, updated: 0, errors: [fetchError.message] };
+            }
+
+            if (!oldProducts || oldProducts.length === 0) {
+                return { success: true, updated: 0, errors: [] };
+            }
+
+            console.log(`🔍 تم إيجاد ${oldProducts.length} منتج قديم يحتاج إصلاح`);
+
+            // معالجة كل منتج قديم
+            for (const product of oldProducts) {
+                const oldCategoryText = product.category?.toLowerCase() || '';
+                
+                // البحث عن فئة مطابقة
+                const matchingCategory = categories.find(c => {
+                    const catName = c.name.toLowerCase();
+                    return catName === oldCategoryText ||
+                           catName.includes(oldCategoryText) ||
+                           oldCategoryText.includes(catName);
+                });
+
+                if (matchingCategory) {
+                    // تحديث المنتج في قاعدة البيانات
+                    const { error: updateError } = await supabase
+                        .from('products')
+                        .update({
+                            category_id: matchingCategory.id,
+                            category: matchingCategory.name,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', product.id);
+
+                    if (updateError) {
+                        errors.push(`فشل تحديث ${product.name}: ${updateError.message}`);
+                    } else {
+                        updatedCount++;
+                        console.log(`✅ تم إصلاح: ${product.name} → ${matchingCategory.name}`);
+                    }
+                } else {
+                    errors.push(`لم يتم إيجاد فئة مطابقة للمنتج: ${product.name} (${product.category})`);
+                }
+            }
+
+            // إعادة تحميل المنتجات
+            await fetchData();
+
+            return { success: true, updated: updatedCount, errors };
+        } catch (error: any) {
+            return { success: false, updated: 0, errors: [error.message] };
+        }
+    };
+
     const categoriesApi = useMemo(() => ({
         addCategory,
         updateCategory,
         deleteCategory,
         getCategoryById,
-        getActiveCategories
+        getActiveCategories,
+        fixOldProductsCategories
     }), [getCategoryById, getActiveCategories]);
 
     if (!supabase) return null;

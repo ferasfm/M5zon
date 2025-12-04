@@ -180,6 +180,7 @@ export interface UseInventoryReturn {
     deleteCategory: (id: string) => Promise<void>;
     getCategoryById: (id: string) => Category | undefined;
     getActiveCategories: () => Category[];
+    fixOldProductsCategories: () => Promise<{ success: boolean; updated: number; errors: string[] }>;
   };
   
   // Dashboard Metrics
