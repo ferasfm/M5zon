@@ -8,8 +8,6 @@ import { useSettings } from '../contexts/SettingsContext';
 import SystemSettings from './SystemSettings';
 import DatabaseSettings from './DatabaseSettings';
 import AppSettingsPanel from './AppSettingsPanel';
-import SettingsTest from './SettingsTest';
-import DatabaseResetTest from './DatabaseResetTest';
 import ReasonsManager from './ReasonsManager';
 import CategoriesManager from './CategoriesManager';
 
@@ -161,7 +159,7 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                                 : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
                             }`}
                         >
-                            🔧 إعدادات النظام
+                            🔧 إعدادات متقدمة
                         </button>
                         <button
                             onClick={() => setActiveTab('data')}
@@ -181,7 +179,7 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                 <>
                 <Card>
                     <CardHeader>
-                        <CardTitle>معلومات الشركة</CardTitle>
+                        <CardTitle>🏢 معلومات الشركة</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -207,7 +205,11 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                                     value={currency}
                                     onChange={(e) => setCurrency(e.target.value)}
                                     className="w-full p-2 border border-gray-300 rounded-md"
+                                    placeholder="مثال: شيكل، ريال سعودي، دولار"
                                 />
+                                <p className="text-xs text-slate-500 mt-1">
+                                    💡 ستظهر هذه العملة في جميع التقارير والفواتير
+                                </p>
                             </div>
                             <div>
                                 <label htmlFor="taxRate" className="block text-sm font-medium text-slate-700 mb-1">
@@ -232,7 +234,7 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>إعدادات التنبيهات</CardTitle>
+                        <CardTitle>🔔 إعدادات التنبيهات</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -329,11 +331,17 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                 <ReasonsManager inventory={inventory} />
                 )}
 
-                {/* System Settings Tab */}
+                {/* Advanced Settings Tab */}
                 {activeTab === 'system' && (
                 <>
-                <SettingsTest />
-                <DatabaseResetTest />
+                <Card className="border-blue-200 bg-blue-50 mb-6">
+                    <CardContent className="py-3">
+                        <p className="text-sm text-blue-800">
+                            ⚠️ <strong>تنبيه:</strong> هذه إعدادات متقدمة للمطورين والمسؤولين. التعديل عليها قد يؤثر على عمل البرنامج.
+                        </p>
+                    </CardContent>
+                </Card>
+                
                 <AppSettingsPanel />
                 <SystemSettings />
                 <DatabaseSettings />
