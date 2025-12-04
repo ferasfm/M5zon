@@ -1037,16 +1037,17 @@ export const useInventory = (): UseInventoryReturn | null => {
             let updatedCount = 0;
             const errors: string[] = [];
 
-            // جلب جميع المنتجات القديمة (بدون category_id)
-            const { data: oldProducts, error: fetchError } = await supabase
+            // جلب جميع المنتجات
+            const { data: allProducts, error: fetchError } = await supabase
                 .from('products')
-                .select('*')
-                .is('category_id', null)
-                .not('category', 'is', null);
+                .select('*');
 
             if (fetchError) {
                 return { success: false, updated: 0, errors: [fetchError.message] };
             }
+
+            // تصفية المنتجات القديمة (بدون category_id ولكن لديها category)
+            const oldProducts = allProducts?.filter(p => !p.category_id && p.category) || [];
 
             if (!oldProducts || oldProducts.length === 0) {
                 return { success: true, updated: 0, errors: [] };

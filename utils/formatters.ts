@@ -6,13 +6,30 @@
 /**
  * تنسيق الأرقام كعملة بأرقام إنجليزية
  */
-export const formatCurrency = (amount: number, currency: string = 'ILS'): string => {
-  return amount.toLocaleString('en-US', { 
-    style: 'currency', 
-    currency: currency,
+export const formatCurrency = (amount: number, currency: string = 'SAR'): string => {
+  // تنسيق الرقم مع فواصل
+  const formatted = amount.toLocaleString('en-US', { 
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
+  
+  // إضافة رمز العملة حسب النوع
+  const currencySymbols: Record<string, string> = {
+    'SAR': 'ر.س',
+    'USD': '$',
+    'EUR': '€',
+    'ILS': '₪',
+    'EGP': 'ج.م',
+    'AED': 'د.إ',
+    'KWD': 'د.ك',
+    'QAR': 'ر.ق',
+    'BHD': 'د.ب',
+    'OMR': 'ر.ع',
+    'JOD': 'د.أ'
+  };
+  
+  const symbol = currencySymbols[currency] || currency;
+  return `${formatted} ${symbol}`;
 };
 
 /**
