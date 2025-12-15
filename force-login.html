@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مسح الجلسة - M5zon</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        p {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .success {
+            background: #10b981;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        .success h2 {
+            color: white;
+            margin: 0 0 10px 0;
+        }
+        .success p {
+            color: white;
+            margin: 0;
+        }
+        .icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🔐</div>
+        <h1>مسح الجلسة المحفوظة</h1>
+        <p>
+            اضغط على الزر أدناه لمسح الجلسة المحفوظة.<br>
+            بعد ذلك، ستحتاج لتسجيل الدخول مرة أخرى.
+        </p>
+        <button onclick="clearSession()">مسح الجلسة الآن</button>
+        
+        <div class="success" id="success">
+            <h2>✅ تم بنجاح!</h2>
+            <p>تم مسح الجلسة. أعد تحميل التطبيق الآن.</p>
+        </div>
+    </div>
+
+    <script>
+        function clearSession() {
+            try {
+                // مسح جميع بيانات localStorage
+                localStorage.clear();
+                
+                // مسح sessionStorage أيضاً
+                sessionStorage.clear();
+                
+                // إظهار رسالة النجاح
+                document.getElementById('success').style.display = 'block';
+                
+                // إعادة تحميل الصفحة بعد ثانيتين
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+                
+                console.log('✅ تم مسح الجلسة بنجاح');
+            } catch (error) {
+                console.error('❌ خطأ في مسح الجلسة:', error);
+                alert('حدث خطأ في مسح الجلسة. حاول مرة أخرى.');
+            }
+        }
+        
+        // عرض معلومات الجلسة الحالية
+        console.log('📊 معلومات الجلسة الحالية:');
+        console.log('currentUser:', localStorage.getItem('currentUser'));
+        console.log('عدد العناصر في localStorage:', localStorage.length);
+    </script>
+</body>
+</html>

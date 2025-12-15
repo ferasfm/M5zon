@@ -95,7 +95,7 @@ export interface TransactionReason {
     displayOrder: number;
 }
 
-export type Page = 'dashboard' | 'products' | 'inventory' | 'receiving' | 'dispatching' | 'dispatch_management' | 'scrapping' | 'suppliers' | 'locations' | 'reports' | 'print_templates' | 'settings';
+export type Page = 'dashboard' | 'products' | 'inventory' | 'receiving' | 'dispatching' | 'dispatch_management' | 'scrapping' | 'suppliers' | 'locations' | 'reports' | 'print_templates' | 'users' | 'settings';
 
 export interface AppSettings {
   lowStockThreshold: number;

@@ -7,9 +7,11 @@ import { useSupabase } from '../contexts/SupabaseContext';
 interface SidebarProps {
     currentPage: Page;
     setCurrentPage: (page: Page) => void;
+    user?: any;
+    onLogout?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, user, onLogout }) => {
     const { getSetting } = useSettings();
     const { connectionType, checkConnection } = useSupabase();
     const [companyName, setCompanyName] = useState('نظام المخزون');
@@ -49,6 +51,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
         { type: 'divider', label: 'التقارير' },
         { id: 'reports', label: 'تقارير المخزون', icon: <Icons.FileText className="h-5 w-5" /> },
         { id: 'print_templates', label: 'مطالبات مالية', icon: <Icons.Printer className="h-5 w-5" /> },
+        { type: 'divider', label: 'الإدارة' },
+        { id: 'users', label: 'إدارة المستخدمين', icon: <Icons.User className="h-5 w-5" /> },
     ] as const;
 
     return (
@@ -94,7 +98,22 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
                     }
                 })}
             </nav>
-            <div className="mt-auto">
+            <div className="mt-auto space-y-2">
+                {/* معلومات المستخدم */}
+                {user && (
+                    <div className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className="flex items-center gap-2 mb-1">
+                            <Icons.User className="h-4 w-4 text-slate-600" />
+                            <span className="text-sm font-medium text-slate-800">{user.username}</span>
+                        </div>
+                        <div className="text-xs text-slate-500">{user.fullName}</div>
+                        <div className="text-xs text-slate-400 mt-1">
+                            {user.role === 'admin' ? 'مدير النظام' : 
+                             user.role === 'manager' ? 'مدير' : 'مستخدم'}
+                        </div>
+                    </div>
+                )}
+                
                 <button
                     onClick={() => setCurrentPage('settings')}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${currentPage === 'settings'
@@ -105,6 +124,17 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
                     <Icons.Settings className="h-5 w-5" />
                     الإعدادات
                 </button>
+                
+                {/* زر تسجيل الخروج */}
+                {onLogout && (
+                    <button
+                        onClick={onLogout}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                        <Icons.LogOut className="h-5 w-5" />
+                        تسجيل الخروج
+                    </button>
+                )}
             </div>
         </aside>
     );
