@@ -484,6 +484,24 @@ export const useInventory = (): UseInventoryReturn | null => {
 
     const dispatchItems = async (itemIds: string[], dispatchClientId: string, dispatchDate: Date, reason: string, notes?: string, reference?: string) => {
         if (!supabase) return;
+        
+        // التحقق من أن جميع القطع متاحة في المخزون
+        const itemsToDispatch = inventoryItems.filter(item => itemIds.includes(item.id));
+        const unavailableItems = itemsToDispatch.filter(item => item.status !== 'in_stock');
+        
+        if (unavailableItems.length > 0) {
+            const unavailableNames = unavailableItems.map(item => {
+                const product = getProductById(item.productId);
+                return `${product?.name || 'منتج'} (${item.serialNumber})`;
+            }).join(', ');
+            
+            notification?.addNotification(
+                `لا يمكن صرف القطع التالية لأنها غير متاحة في المخزون: ${unavailableNames}`,
+                'error'
+            );
+            return;
+        }
+        
         const updates = {
             status: 'dispatched',
             dispatch_client_id: dispatchClientId,
