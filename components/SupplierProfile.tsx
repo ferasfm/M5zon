@@ -42,6 +42,55 @@ const SupplierProfile: React.FC<SupplierProfileProps> = ({ supplierId, onBack, i
             });
     }, [inventoryItems, supplier]);
 
+    // تجميع القطع حسب المنتج والسعر
+    const groupedPurchases = useMemo(() => {
+        if (!supplier) return [];
+        
+        const groups = new Map<string, {
+            productId: string;
+            productName: string;
+            unitPrice: number;
+            items: typeof supplierItems;
+            inStockCount: number;
+            dispatchedCount: number;
+            scrappedCount: number;
+            totalCost: number;
+        }>();
+
+        supplierItems.forEach(item => {
+            const product = getProductById(item.productId);
+            const key = `${item.productId}-${item.costPrice}`;
+            
+            if (!groups.has(key)) {
+                groups.set(key, {
+                    productId: item.productId,
+                    productName: product?.name || 'منتج غير معروف',
+                    unitPrice: item.costPrice,
+                    items: [],
+                    inStockCount: 0,
+                    dispatchedCount: 0,
+                    scrappedCount: 0,
+                    totalCost: 0
+                });
+            }
+            
+            const group = groups.get(key)!;
+            group.items.push(item);
+            group.totalCost += item.costPrice;
+            
+            if (item.status === 'in_stock') group.inStockCount++;
+            else if (item.status === 'dispatched') group.dispatchedCount++;
+            else if (item.status === 'scrapped') group.scrappedCount++;
+        });
+
+        return Array.from(groups.values()).sort((a, b) => {
+            // ترتيب حسب أحدث قطعة في المجموعة
+            const dateA = a.items[0]?.purchaseDate ? new Date(a.items[0].purchaseDate).getTime() : 0;
+            const dateB = b.items[0]?.purchaseDate ? new Date(b.items[0].purchaseDate).getTime() : 0;
+            return dateB - dateA;
+        });
+    }, [supplierItems, supplier, getProductById]);
+
     const handleSubmitAgreement = (data: { productId: string; price: number; startDate: string; }) => {
         if (!supplier) return;
         addPriceAgreement(supplier.id, data);
@@ -247,34 +296,109 @@ const SupplierProfile: React.FC<SupplierProfileProps> = ({ supplierId, onBack, i
             
             <Card>
                 <CardHeader>
-                    <CardTitle>سجل المشتريات من هذا المورد ({supplierItems.length})</CardTitle>
+                    <CardTitle>سجل المشتريات من هذا المورد ({supplierItems.length} قطعة)</CardTitle>
                 </CardHeader>
                 <CardContent>
-                     <table className="w-full text-sm text-right">
-                        <thead className="text-xs text-slate-700 uppercase bg-slate-100">
-                            <tr>
-                                <th className="px-4 py-3">تاريخ الشراء</th>
-                                <th className="px-4 py-3">المنتج</th>
-                                <th className="px-4 py-3">بار كود القطعة</th>
-                                <th className="px-4 py-3">تكلفة الشراء</th>
-                                <th className="px-4 py-3">الحالة الحالية</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {supplierItems.slice(0, 20).map(item => {
-                                const product = getProductById(item.productId);
-                                return (
-                                <tr key={item.id} className="border-b">
-                                    <td className="px-4 py-2">{formatDate(item.purchaseDate)}</td>
-                                    <td className="px-4 py-2 font-medium">{product?.name}</td>
-                                    <td className="px-4 py-2 font-mono">{item.serialNumber}</td>
-                                    <td className="px-4 py-2">{formatCurrency(item.costPrice)}</td>
-                                    <td className="px-4 py-2">{item.status}</td>
+                    {groupedPurchases.length === 0 ? (
+                        <p className="text-center text-slate-500 py-8">لا توجد مشتريات من هذا المورد</p>
+                    ) : (
+                        <table className="w-full text-sm text-right">
+                            <thead className="text-xs text-slate-700 uppercase bg-slate-100">
+                                <tr>
+                                    <th className="px-4 py-3">المنتج</th>
+                                    <th className="px-4 py-3">الكمية الإجمالية</th>
+                                    <th className="px-4 py-3">السعر الفردي</th>
+                                    <th className="px-4 py-3">التكلفة الإجمالية</th>
+                                    <th className="px-4 py-3">الحالة</th>
+                                    <th className="px-4 py-3">التفاصيل</th>
                                 </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {groupedPurchases.map((group, index) => (
+                                    <React.Fragment key={`${group.productId}-${group.unitPrice}`}>
+                                        <tr className="border-b hover:bg-slate-50">
+                                            <td className="px-4 py-3 font-medium">{group.productName}</td>
+                                            <td className="px-4 py-3">
+                                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold">
+                                                    {group.items.length}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3">{formatCurrency(group.unitPrice)}</td>
+                                            <td className="px-4 py-3 font-semibold">{formatCurrency(group.totalCost)}</td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex gap-2 text-xs">
+                                                    {group.inStockCount > 0 && (
+                                                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                                                            متاح: {group.inStockCount}
+                                                        </span>
+                                                    )}
+                                                    {group.dispatchedCount > 0 && (
+                                                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                                            مصروف: {group.dispatchedCount}
+                                                        </span>
+                                                    )}
+                                                    {group.scrappedCount > 0 && (
+                                                        <span className="bg-red-100 text-red-800 px-2 py-1 rounded">
+                                                            متلف: {group.scrappedCount}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <button
+                                                    onClick={() => {
+                                                        const detailsRow = document.getElementById(`details-${index}`);
+                                                        if (detailsRow) {
+                                                            detailsRow.classList.toggle('hidden');
+                                                        }
+                                                    }}
+                                                    className="text-primary hover:underline text-xs"
+                                                >
+                                                    عرض التفاصيل
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr id={`details-${index}`} className="hidden bg-slate-50">
+                                            <td colSpan={6} className="px-4 py-3">
+                                                <div className="bg-white rounded-lg p-4 border">
+                                                    <h4 className="font-semibold mb-3 text-slate-700">تفاصيل القطع:</h4>
+                                                    <table className="w-full text-xs">
+                                                        <thead className="bg-slate-100">
+                                                            <tr>
+                                                                <th className="px-3 py-2 text-right">تاريخ الشراء</th>
+                                                                <th className="px-3 py-2 text-right">الرقم التسلسلي</th>
+                                                                <th className="px-3 py-2 text-right">السعر</th>
+                                                                <th className="px-3 py-2 text-right">الحالة</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {group.items.map(item => (
+                                                                <tr key={item.id} className="border-b">
+                                                                    <td className="px-3 py-2">{formatDate(item.purchaseDate)}</td>
+                                                                    <td className="px-3 py-2 font-mono">{item.serialNumber}</td>
+                                                                    <td className="px-3 py-2">{formatCurrency(item.costPrice)}</td>
+                                                                    <td className="px-3 py-2">
+                                                                        <span className={`px-2 py-1 rounded text-xs ${
+                                                                            item.status === 'in_stock' ? 'bg-green-100 text-green-800' :
+                                                                            item.status === 'dispatched' ? 'bg-blue-100 text-blue-800' :
+                                                                            'bg-red-100 text-red-800'
+                                                                        }`}>
+                                                                            {item.status === 'in_stock' ? 'متاح' :
+                                                                             item.status === 'dispatched' ? 'مصروف' : 'متلف'}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </React.Fragment>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </CardContent>
             </Card>
 
