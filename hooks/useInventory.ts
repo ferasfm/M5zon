@@ -252,11 +252,19 @@ export const useInventory = (): UseInventoryReturn | null => {
 
     // --- PRODUCTS API ---
     const addProduct = async (productData: Omit<Product, 'id'>) => {
-        if (!supabase) return;
+        console.log('➕ محاولة إضافة منتج:', productData);
+        
+        if (!supabase) {
+            console.error('❌ لا يوجد اتصال بقاعدة البيانات');
+            notification?.addNotification('لا يوجد اتصال بقاعدة البيانات', 'error');
+            return;
+        }
         
         // الحصول على اسم الفئة من معرف الفئة
         const selectedCategory = categories.find(c => c.id === productData.categoryId);
         const categoryName = selectedCategory?.name || productData.category || '';
+
+        console.log('📂 الفئة المختارة:', { categoryId: productData.categoryId, categoryName });
 
         // تحويل أسماء الخصائص لتتوافق مع قاعدة البيانات
         const dbProductData = {
@@ -282,10 +290,29 @@ export const useInventory = (): UseInventoryReturn | null => {
         delete dbProductData.productType;
         delete dbProductData.categoryId;
 
+        console.log('💾 البيانات المرسلة لقاعدة البيانات:', dbProductData);
+        console.log('📝 اسم المنتج المُرسل:', dbProductData.name);
+        console.log('🔍 نوع supabase:', typeof supabase);
+        console.log('🔍 supabase.from:', typeof supabase?.from);
+
         const { data, error } = await supabase.from('products').insert([dbProductData]).select();
+        
         if (error) {
+            console.error('❌ خطأ في إضافة المنتج:', error);
             notification?.addNotification(`فشل إضافة المنتج: ${error.message}`, 'error');
         } else if (data) {
+            console.log('✅ البيانات المُرجعة من قاعدة البيانات:', data);
+            console.log('📦 عدد الصفوف المُرجعة:', data.length);
+            console.log('📝 data[0] كامل:', JSON.stringify(data[0], null, 2));
+            console.log('📝 اسم المنتج المُرجع من data[0]:', data[0]?.name);
+            console.log('📝 اسم المنتج الأصلي المُرسل:', dbProductData.name);
+            
+            if (!data[0]) {
+                console.error('❌ لم يتم إرجاع أي بيانات من قاعدة البيانات!');
+                notification?.addNotification('تم إضافة المنتج ولكن لم يتم إرجاع البيانات', 'error');
+                return;
+            }
+            
             const parsedProduct = {
                 ...data[0],
                 hasWarranty: data[0].has_warranty,
@@ -296,8 +323,16 @@ export const useInventory = (): UseInventoryReturn | null => {
                 categoryId: data[0].category_id,
                 category: data[0].category
             };
+            
+            console.log('🔄 المنتج بعد التحويل:', parsedProduct);
+            console.log('🔄 اسم المنتج بعد التحويل:', parsedProduct.name);
+            
             setProducts(prev => [...prev, parsedProduct]);
-            notification?.addNotification(`تمت إضافة المنتج "${data[0].name}" بنجاح.`, 'success');
+            
+            // استخدام الاسم من البيانات المُرجعة مباشرة
+            const productName = data[0]?.name || dbProductData.name || 'المنتج';
+            console.log('📢 الاسم الذي سيظهر في الإشعار:', productName);
+            notification?.addNotification(`تمت إضافة المنتج "${productName}" بنجاح.`, 'success');
         }
     };
     const updateProduct = async (updatedProduct: Product) => {
@@ -1107,7 +1142,10 @@ export const useInventory = (): UseInventoryReturn | null => {
         fixOldProductsCategories
     }), [getCategoryById, getActiveCategories]);
 
-    if (!supabase) return null;
+    if (!supabase) {
+        console.error('❌❌❌ لا يوجد اتصال بقاعدة البيانات! useInventory يُرجع null');
+        return null;
+    }
 
     return useMemo(() => ({
         inventoryItems,

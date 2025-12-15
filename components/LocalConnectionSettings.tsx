@@ -3,10 +3,10 @@ import { localDb } from '../services/DatabaseService';
 import { Database, Server, Save, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 
 interface LocalConnectionSettingsProps {
-    onConnect: () => void;
+    onConfigured: (host: string, port: string, database: string, user: string, password: string) => Promise<boolean>;
 }
 
-const LocalConnectionSettings: React.FC<LocalConnectionSettingsProps> = ({ onConnect }) => {
+const LocalConnectionSettings: React.FC<LocalConnectionSettingsProps> = ({ onConfigured }) => {
     const [config, setConfig] = useState({
         host: '172.10.0.16',
         port: '5432',
@@ -34,20 +34,19 @@ const LocalConnectionSettings: React.FC<LocalConnectionSettingsProps> = ({ onCon
         setErrorMessage('');
 
         try {
-            const result = await localDb.connect({
-                ...config,
-                port: parseInt(config.port)
-            });
+            const success = await onConfigured(
+                config.host,
+                config.port,
+                config.database,
+                config.user,
+                config.password
+            );
 
-            if (result.success) {
+            if (success) {
                 setStatus('connected');
-                localStorage.setItem('localDbConfig', JSON.stringify(config));
-                // Save connection type preference
-                localStorage.setItem('connectionType', 'local');
-                onConnect();
             } else {
                 setStatus('error');
-                setErrorMessage(result.error || 'فشل الاتصال');
+                setErrorMessage('فشل الاتصال بقاعدة البيانات');
             }
         } catch (error: any) {
             setStatus('error');

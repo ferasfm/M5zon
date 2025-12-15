@@ -37,8 +37,14 @@ class QueryBuilder<T> {
     }
 
     select(columns: string = '*') {
-        this.queryType = 'SELECT';
-        this.selectColumns = columns;
+        // إذا كان هناك insert/update/delete، لا نغير queryType
+        // select() بعد insert/update/delete يعني فقط تحديد الأعمدة المُرجعة
+        if (this.queryType === 'SELECT') {
+            this.selectColumns = columns;
+        } else {
+            // للعمليات الأخرى، select() يحدد فقط الأعمدة المُرجعة في RETURNING
+            this.selectColumns = columns;
+        }
         return this;
     }
 
@@ -79,21 +85,38 @@ class QueryBuilder<T> {
         return this;
     }
 
-    // تنفيذ الاستعلام
-    async then(resolve: (response: DbResponse<T>) => void, reject: (error: any) => void) {
+    // تنفيذ الاستعلام - يجب أن يكون thenable
+    then<TResult1 = DbResponse<T>, TResult2 = never>(
+        onfulfilled?: ((value: DbResponse<T>) => TResult1 | PromiseLike<TResult1>) | null,
+        onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+    ): Promise<TResult1 | TResult2> {
+        return this.execute().then(onfulfilled, onrejected);
+    }
+
+    // دالة التنفيذ الفعلية
+    private async execute(): Promise<DbResponse<T>> {
         try {
             const { sql, params } = this.buildSql();
-            console.log('Executing SQL:', sql, params);
+            console.log('🔍 Executing SQL:', sql);
+            console.log('📊 Parameters:', params);
+
+            if (!window.electron?.database) {
+                console.error('❌ window.electron.database is not available!');
+                return { data: null, error: { message: 'Database connection not available' } };
+            }
 
             const result = await window.electron.database.query(sql, params);
 
             if (result.success) {
-                resolve({ data: result.data as T[], error: null });
+                console.log('✅ Query successful, rows:', result.data?.length || 0);
+                return { data: result.data as T[], error: null };
             } else {
-                resolve({ data: null, error: { message: result.error || 'Unknown DB Error' } });
+                console.error('❌ Query failed:', result.error);
+                return { data: null, error: { message: result.error || 'Unknown DB Error' } };
             }
         } catch (error: any) {
-            resolve({ data: null, error: { message: error.message } });
+            console.error('❌ Exception in execute:', error);
+            return { data: null, error: { message: error.message } };
         }
     }
 
@@ -103,69 +126,78 @@ class QueryBuilder<T> {
         let params: any[] = [];
         let paramCounter = 1;
 
-        switch (this.queryType) {
-            case 'SELECT':
-                sql = `SELECT ${this.selectColumns} FROM ${this.tableName}`;
-                break;
+        try {
+            switch (this.queryType) {
+                case 'SELECT':
+                    sql = `SELECT ${this.selectColumns} FROM ${this.tableName}`;
+                    break;
 
-            case 'INSERT':
-                const items = Array.isArray(this.insertData) ? this.insertData : [this.insertData];
-                if (items.length === 0) throw new Error('No data to insert');
+                case 'INSERT':
+                    const items = Array.isArray(this.insertData) ? this.insertData : [this.insertData];
+                    if (items.length === 0) throw new Error('No data to insert');
 
-                const keys = Object.keys(items[0]);
+                    const keys = Object.keys(items[0]);
 
-                const valuesPlaceholder = items.map(() => {
-                    const placeholders = keys.map(() => `$${paramCounter++}`).join(', ');
-                    return `(${placeholders})`;
-                }).join(', ');
+                    const valuesPlaceholder = items.map(() => {
+                        const placeholders = keys.map(() => `$${paramCounter++}`).join(', ');
+                        return `(${placeholders})`;
+                    }).join(', ');
 
-                items.forEach(item => {
-                    keys.forEach(key => params.push(item[key]));
+                    items.forEach(item => {
+                        keys.forEach(key => params.push(item[key]));
+                    });
+
+                    const returningColumns = this.selectColumns || '*';
+                    sql = `INSERT INTO ${this.tableName} (${keys.join(', ')}) VALUES ${valuesPlaceholder} RETURNING ${returningColumns}`;
+                    break;
+
+                case 'UPDATE':
+                    const updateKeys = Object.keys(this.updateData);
+                    const setClause = updateKeys.map(key => `${key} = $${paramCounter++}`).join(', ');
+                    updateKeys.forEach(key => params.push(this.updateData[key]));
+
+                    sql = `UPDATE ${this.tableName} SET ${setClause}`;
+                    break;
+
+                case 'DELETE':
+                    sql = `DELETE FROM ${this.tableName}`;
+                    break;
+            }
+
+            if (this.whereConditions.length > 0) {
+                const whereClauses = this.whereConditions.map(cond => {
+                    if (cond.operator === 'IN') {
+                        const placeholders = cond.value.map(() => `$${paramCounter++}`).join(', ');
+                        cond.value.forEach((v: any) => params.push(v));
+                        return `${cond.column} IN (${placeholders})`;
+                    } else {
+                        params.push(cond.value);
+                        return `${cond.column} ${cond.operator} $${paramCounter++}`;
+                    }
                 });
+                sql += ` WHERE ${whereClauses.join(' AND ')}`;
+            }
 
-                sql = `INSERT INTO ${this.tableName} (${keys.join(', ')}) VALUES ${valuesPlaceholder} RETURNING *`;
-                break;
+            if (this.queryType === 'UPDATE' || this.queryType === 'DELETE') {
+                sql += ' RETURNING *';
+            }
 
-            case 'UPDATE':
-                const updateKeys = Object.keys(this.updateData);
-                const setClause = updateKeys.map(key => `${key} = $${paramCounter++}`).join(', ');
-                updateKeys.forEach(key => params.push(this.updateData[key]));
+            if (this.orderBy) {
+                sql += ` ${this.orderBy}`;
+            }
 
-                sql = `UPDATE ${this.tableName} SET ${setClause}`;
-                break;
+            if (this.limitCount !== null) {
+                sql += ` LIMIT ${this.limitCount}`;
+            }
 
-            case 'DELETE':
-                sql = `DELETE FROM ${this.tableName}`;
-                break;
+            console.log('🔨 Built SQL:', sql);
+            console.log('🔨 Built params:', params);
+
+            return { sql, params };
+        } catch (error: any) {
+            console.error('❌ Error building SQL:', error);
+            throw error;
         }
-
-        if (this.whereConditions.length > 0) {
-            const whereClauses = this.whereConditions.map(cond => {
-                if (cond.operator === 'IN') {
-                    const placeholders = cond.value.map(() => `$${paramCounter++}`).join(', ');
-                    cond.value.forEach((v: any) => params.push(v));
-                    return `${cond.column} IN (${placeholders})`;
-                } else {
-                    params.push(cond.value);
-                    return `${cond.column} ${cond.operator} $${paramCounter++}`;
-                }
-            });
-            sql += ` WHERE ${whereClauses.join(' AND ')}`;
-        }
-
-        if (this.queryType === 'UPDATE' || this.queryType === 'DELETE') {
-            sql += ' RETURNING *';
-        }
-
-        if (this.orderBy) {
-            sql += ` ${this.orderBy}`;
-        }
-
-        if (this.limitCount !== null) {
-            sql += ` LIMIT ${this.limitCount}`;
-        }
-
-        return { sql, params };
     }
 }
 
@@ -175,9 +207,11 @@ export const localDb = {
 
     // دوال مساعدة للاتصال
     connect: async (config: any) => {
+        console.log('🔌 Connecting to database...', config);
         return await window.electron.database.connect(config);
     },
     disconnect: async () => {
+        console.log('🔌 Disconnecting from database...');
         return await window.electron.database.disconnect();
     },
     isConnected: async () => {

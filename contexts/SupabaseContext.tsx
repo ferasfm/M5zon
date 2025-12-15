@@ -19,65 +19,89 @@ const SupabaseContext = createContext<SupabaseContextType | null>(null);
 export const SupabaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [supabase, setSupabase] = useState<any | null>(null);
   const [isConfigured, setIsConfigured] = useState(false);
-  const [connectionType, setConnectionType] = useState<'supabase' | 'local'>('supabase');
+  const [connectionType] = useState<'supabase' | 'local'>('local'); // دائماً محلي
 
   useEffect(() => {
-    // Check localStorage for saved preference
-    const savedType = localStorage.getItem('connectionType') as 'supabase' | 'local';
-    if (savedType) {
-      setConnectionType(savedType);
-    }
-
-    if (savedType === 'local') {
-      const savedConfig = localStorage.getItem('localDbConfig');
-      if (savedConfig) {
-        // Attempt to connect automatically
-        const config = JSON.parse(savedConfig);
-        localDb.connect({ ...config, port: parseInt(config.port) }).then(result => {
-          if (result.success) {
-            setSupabase(localDb);
-            setIsConfigured(true);
-          }
-        });
-      }
-    } else {
-      // Check localStorage for saved credentials on initial load
-      const savedUrl = localStorage.getItem('supabaseUrl');
-      const savedKey = localStorage.getItem('supabaseKey');
-      if (savedUrl && savedKey) {
-        try {
-          const client = createSupabaseClient(savedUrl, savedKey);
-          setSupabase(client);
+    // الاتصال التلقائي بـ PostgreSQL المحلي
+    const savedConfig = localStorage.getItem('localDbConfig');
+    
+    if (savedConfig) {
+      // محاولة الاتصال بالإعدادات المحفوظة
+      const config = JSON.parse(savedConfig);
+      console.log('🔄 محاولة الاتصال بـ PostgreSQL المحلي...', config);
+      
+      localDb.connect({ ...config, port: parseInt(config.port) }).then(result => {
+        if (result.success) {
+          console.log('✅ تم الاتصال بـ PostgreSQL بنجاح');
+          setSupabase(localDb);
           setIsConfigured(true);
-        } catch (error) {
-          console.error("Failed to initialize Supabase from localStorage:", error);
-          localStorage.removeItem('supabaseUrl');
-          localStorage.removeItem('supabaseKey');
+        } else {
+          console.error('❌ فشل الاتصال بـ PostgreSQL:', result.error);
         }
-      }
+      });
+    } else {
+      // إعدادات افتراضية لـ PostgreSQL المحلي
+      const defaultConfig = {
+        host: 'localhost',
+        port: 5432,
+        database: 'postgres',
+        user: 'postgres',
+        password: ''
+      };
+      
+      console.log('🔄 محاولة الاتصال بالإعدادات الافتراضية...');
+      
+      localDb.connect(defaultConfig).then(result => {
+        if (result.success) {
+          console.log('✅ تم الاتصال بـ PostgreSQL بنجاح (إعدادات افتراضية)');
+          setSupabase(localDb);
+          setIsConfigured(true);
+          // حفظ الإعدادات
+          localStorage.setItem('localDbConfig', JSON.stringify(defaultConfig));
+        } else {
+          console.error('❌ فشل الاتصال بـ PostgreSQL:', result.error);
+        }
+      });
     }
   }, []);
 
-  const configureSupabase = (url: string, key: string) => {
+  const configureSupabase = async (host: string, port: string, database: string, user: string, password: string) => {
     try {
-      const client = createSupabaseClient(url, key);
-      setSupabase(client);
-      setIsConfigured(true);
-      setConnectionType('supabase');
-      // Save to localStorage
-      localStorage.setItem('supabaseUrl', url);
-      localStorage.setItem('supabaseKey', key);
-      localStorage.setItem('connectionType', 'supabase');
+      console.log('🔄 محاولة الاتصال بـ PostgreSQL...', { host, port, database, user });
+      
+      const config = {
+        host,
+        port: parseInt(port),
+        database,
+        user,
+        password
+      };
+      
+      const result = await localDb.connect(config);
+      
+      if (result.success) {
+        console.log('✅ تم الاتصال بـ PostgreSQL بنجاح');
+        setSupabase(localDb);
+        setIsConfigured(true);
+        // حفظ الإعدادات
+        localStorage.setItem('localDbConfig', JSON.stringify(config));
+        return true;
+      } else {
+        console.error('❌ فشل الاتصال:', result.error);
+        alert(`فشل الاتصال بقاعدة البيانات: ${result.error}`);
+        return false;
+      }
     } catch (error) {
-      console.error("Failed to configure Supabase:", error);
-      alert("Failed to connect to Supabase. Please check the URL and Key.");
+      console.error("خطأ في الاتصال:", error);
+      alert("حدث خطأ أثناء الاتصال بقاعدة البيانات");
+      return false;
     }
   };
 
   const handleLocalConnect = () => {
+    // هذه الدالة لم تعد مستخدمة - الاتصال يتم تلقائياً
     setSupabase(localDb);
     setIsConfigured(true);
-    setConnectionType('local');
   };
 
   const checkConnection = async (): Promise<boolean> => {
@@ -107,26 +131,12 @@ export const SupabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   if (!isConfigured) {
     return (
       <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
-        <div className="mb-6 flex gap-4">
-          <button
-            onClick={() => setConnectionType('supabase')}
-            className={`px-4 py-2 rounded-md ${connectionType === 'supabase' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
-          >
-            Supabase Cloud
-          </button>
-          <button
-            onClick={() => setConnectionType('local')}
-            className={`px-4 py-2 rounded-md ${connectionType === 'local' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
-          >
-            Local Database
-          </button>
+        <div className="mb-6 text-center">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">🗄️ قاعدة بيانات PostgreSQL</h1>
+          <p className="text-gray-600">قم بإدخال معلومات الاتصال بقاعدة البيانات المحلية</p>
         </div>
 
-        {connectionType === 'supabase' ? (
-          <SupabaseConfigScreen onConfigured={configureSupabase} />
-        ) : (
-          <LocalConnectionSettings onConnect={handleLocalConnect} />
-        )}
+        <LocalConnectionSettings onConfigured={configureSupabase} />
       </div>
     );
   }

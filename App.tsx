@@ -27,7 +27,29 @@ const MainApp: React.FC = () => {
 
     // عرض شاشة التحميل فقط عند التحميل الأولي (عند بدء التطبيق)
     if (!inventory) {
-        return <LoadingScreen message="جاري الاتصال بقاعدة البيانات..." />;
+        console.error('❌ inventory is null - لا يوجد اتصال بقاعدة البيانات');
+        return (
+            <div className="flex items-center justify-center h-screen bg-slate-50">
+                <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
+                    <div className="text-6xl mb-4">⚠️</div>
+                    <h2 className="text-2xl font-bold text-red-600 mb-4">خطأ في الاتصال</h2>
+                    <p className="text-slate-700 mb-4">
+                        لا يوجد اتصال بقاعدة البيانات. يرجى التحقق من:
+                    </p>
+                    <ul className="text-right text-sm text-slate-600 space-y-2 mb-6">
+                        <li>✓ تشغيل خادم PostgreSQL</li>
+                        <li>✓ إعدادات الاتصال في التطبيق</li>
+                        <li>✓ اسم المستخدم وكلمة المرور</li>
+                    </ul>
+                    <button 
+                        onClick={() => window.location.reload()} 
+                        className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    >
+                        إعادة المحاولة
+                    </button>
+                </div>
+            </div>
+        );
     }
     
     // بعد التحميل الأولي، نستخدم Toast للإشعارات بدلاً من شاشة التحميل الكاملة

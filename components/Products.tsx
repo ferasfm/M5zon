@@ -36,9 +36,13 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
     };
 
     const handleSubmit = (productData: Omit<Product, 'id'> | Product) => {
+        console.log('📝 تم إرسال النموذج:', productData);
+
         if ('id' in productData) {
+            console.log('✏️ تحديث منتج موجود');
             updateProduct(productData);
         } else {
+            console.log('➕ إضافة منتج جديد');
             addProduct(productData);
         }
         closeModal();
@@ -104,8 +108,8 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
                     <button
                         onClick={() => setActiveTab('standard')}
                         className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${activeTab === 'standard'
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
                             }`}
                     >
                         📦 المنتجات العادية
@@ -113,8 +117,8 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
                     <button
                         onClick={() => setActiveTab('bundle')}
                         className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${activeTab === 'bundle'
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
                             }`}
                     >
                         📦 الحزم والمجموعات

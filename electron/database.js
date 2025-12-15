@@ -31,10 +31,21 @@ const db = {
       if (!client) {
         throw new Error('Database not connected');
       }
-      const res = await client.query(text, params);
+      console.log('📊 Executing query:', text);
+      console.log('📊 With params:', params);
+      
+      // استخدام الصيغة الصحيحة لـ pg
+      const res = await client.query({
+        text: text,
+        values: params || []
+      });
+      
+      console.log('✅ Query successful, rows:', res.rows.length);
       return { success: true, data: res.rows };
     } catch (error) {
-      console.error('Database query error:', error);
+      console.error('❌ Database query error:', error);
+      console.error('❌ Query was:', text);
+      console.error('❌ Params were:', params);
       return { success: false, error: error.message };
     }
   },

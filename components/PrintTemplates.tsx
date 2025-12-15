@@ -93,6 +93,8 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
         }
 
         const filteredItems = inventoryItems.filter(item => {
+            // المطالبة المالية تعرض كل ما تم شراؤه من المورد
+            // بغض النظر عن حالة القطعة (في المخزون، مصروفة، متلفة)
             if (item.supplierId !== selectedSupplierId) return false;
             if (!item.purchaseDate) return false;
             const itemDate = new Date(item.purchaseDate);
@@ -573,6 +575,13 @@ const PrintTemplates: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory
                     <CardTitle>1. تحديد معايير المطالبة</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+                        <p className="text-sm text-blue-800">
+                            <strong>ℹ️ ملاحظة:</strong> المطالبة المالية تعرض جميع القطع المشتراة من المورد في الفترة المحددة، 
+                            بغض النظر عن حالتها (في المخزون، مصروفة، متلفة). 
+                            عند التسليم، يتم تحديث مكان التسليم فقط دون التأثير على المطالبة.
+                        </p>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-sm font-medium">المورد*</label>
