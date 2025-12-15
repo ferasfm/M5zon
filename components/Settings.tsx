@@ -10,6 +10,7 @@ import DatabaseSettings from './DatabaseSettings';
 import AppSettingsPanel from './AppSettingsPanel';
 import ReasonsManager from './ReasonsManager';
 import CategoriesManager from './CategoriesManager';
+import UsersManagement from './UsersManagement';
 
 interface SettingsProps {
     inventory: UseInventoryReturn;
@@ -18,7 +19,7 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ inventory }) => {
     const { settings, wipeAllData, products, categories } = inventory;
     const { getSetting, updateSetting } = useSettings();
-    const [activeTab, setActiveTab] = useState<'general' | 'categories' | 'reasons' | 'system' | 'data'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'categories' | 'reasons' | 'users' | 'system' | 'data'>('general');
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [resetConfirmationText, setResetConfirmationText] = useState('');
     const [companyName, setCompanyName] = useState('');
@@ -150,6 +151,16 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                             }`}
                         >
                             📝 إدارة الأسباب
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('users')}
+                            className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
+                                activeTab === 'users' 
+                                ? 'border-primary text-primary' 
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            }`}
+                        >
+                            👥 إدارة المستخدمين
                         </button>
                         <button
                             onClick={() => setActiveTab('system')}
@@ -329,6 +340,11 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                 {/* Reasons Manager Tab */}
                 {activeTab === 'reasons' && (
                 <ReasonsManager inventory={inventory} />
+                )}
+
+                {/* Users Management Tab */}
+                {activeTab === 'users' && (
+                <UsersManagement />
                 )}
 
                 {/* Advanced Settings Tab */}

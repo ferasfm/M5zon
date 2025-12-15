@@ -12,7 +12,6 @@ import Locations from './components/Locations';
 import Reports from './components/Reports';
 import PrintTemplates from './components/PrintTemplates';
 import Settings from './components/Settings';
-import UsersManagement from './components/UsersManagement';
 import ConnectionStatus from './components/ConnectionStatus';
 import LoadingScreen from './components/LoadingScreen';
 import Login from './components/Login';
@@ -126,12 +125,6 @@ const MainApp: React.FC = () => {
                 return (
                     <ProtectedRoute page="print_templates">
                         <PrintTemplates inventory={inventory} />
-                    </ProtectedRoute>
-                );
-            case 'users':
-                return (
-                    <ProtectedRoute page="users">
-                        <UsersManagement />
                     </ProtectedRoute>
                 );
             case 'settings':

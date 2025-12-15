@@ -51,8 +51,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, user, on
         { type: 'divider', label: 'التقارير' },
         { id: 'reports', label: 'تقارير المخزون', icon: <Icons.FileText className="h-5 w-5" /> },
         { id: 'print_templates', label: 'مطالبات مالية', icon: <Icons.Printer className="h-5 w-5" /> },
-        { type: 'divider', label: 'الإدارة' },
-        { id: 'users', label: 'إدارة المستخدمين', icon: <Icons.User className="h-5 w-5" /> },
     ] as const;
 
     return (
