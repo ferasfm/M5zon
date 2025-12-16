@@ -54,26 +54,39 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, user, on
     ] as const;
 
     return (
-        <aside className="w-64 bg-white border-l border-slate-200 p-6 flex flex-col">
-            <div className="flex items-center gap-3 mb-6">
-                <Icons.Logo className="h-8 w-8 text-primary" />
-                <h1 className="text-xl font-bold text-dark">{companyName}</h1>
+        <aside className="w-64 bg-white border-l border-slate-200 p-3 flex flex-col h-screen overflow-hidden">
+            {/* Header مضغوط */}
+            <div className="flex items-center gap-2 mb-3">
+                <Icons.Logo className="h-6 w-6 text-primary" />
+                <h1 className="text-base font-bold text-dark truncate">{companyName}</h1>
             </div>
 
-            {/* مؤشر حالة الاتصال */}
-            <div className={`mb-6 p-3 rounded-lg border flex items-center justify-between ${isConnected ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-                }`}>
-                <div className="flex flex-col w-full text-center">
-                    <span className={`text-xs font-bold ${isConnected ? 'text-green-700' : 'text-red-700'}`}>
-                        {isConnected ? 'متصل' : 'غير متصل'}
-                    </span>
-                    <span className="text-[10px] text-gray-500 mt-0.5">
-                        {connectionType === 'local' ? 'سيرفر محلي' : 'قاعدة بيانات سحابية'}
-                    </span>
+            {/* معلومات المستخدم مضغوطة */}
+            {user && (
+                <div className="mb-2 px-2 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Icons.User className="h-3 w-3 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-xs font-bold text-slate-800 truncate">{user.username}</div>
+                            <div className="text-[10px] text-blue-700 font-medium">
+                                {user.role === 'admin' ? '👑 مدير' : user.role === 'manager' ? '📊 مدير' : '👤 مستخدم'}
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            )}
+
+            {/* مؤشر حالة الاتصال مضغوط */}
+            <div className={`mb-2 px-2 py-1.5 rounded-lg border flex items-center justify-center ${isConnected ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <span className={`text-[10px] font-bold ${isConnected ? 'text-green-700' : 'text-red-700'}`}>
+                    {isConnected ? '🟢 متصل' : '🔴 غير متصل'} • {connectionType === 'local' ? 'محلي' : 'سحابي'}
+                </span>
             </div>
 
-            <nav className="flex-1 space-y-2">
+            {/* القائمة مع تمرير داخلي */}
+            <nav className="flex-1 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
                 {navItems.map((item, index) => {
                     if ('id' in item) {
                         const { id, label, icon } = item;
@@ -82,54 +95,40 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, user, on
                             <button
                                 key={id}
                                 onClick={() => setCurrentPage(id)}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${isActive
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${isActive
                                         ? 'bg-primary text-white'
                                         : 'text-slate-700 hover:bg-slate-100'
                                     }`}
                             >
-                                {icon}
-                                {label}
+                                <span className="flex-shrink-0">{icon}</span>
+                                <span className="truncate">{label}</span>
                             </button>
                         );
                     } else {
-                        return <h3 key={index} className="px-3 pt-4 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">{item.label}</h3>;
+                        return <h3 key={index} className="px-2 pt-2 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{item.label}</h3>;
                     }
                 })}
             </nav>
-            <div className="mt-auto space-y-2">
-                {/* معلومات المستخدم */}
-                {user && (
-                    <div className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
-                        <div className="flex items-center gap-2 mb-1">
-                            <Icons.User className="h-4 w-4 text-slate-600" />
-                            <span className="text-sm font-medium text-slate-800">{user.username}</span>
-                        </div>
-                        <div className="text-xs text-slate-500">{user.fullName}</div>
-                        <div className="text-xs text-slate-400 mt-1">
-                            {user.role === 'admin' ? 'مدير النظام' : 
-                             user.role === 'manager' ? 'مدير' : 'مستخدم'}
-                        </div>
-                    </div>
-                )}
-                
+
+            {/* الأزرار السفلية */}
+            <div className="mt-2 space-y-1 border-t border-slate-200 pt-2">
                 <button
                     onClick={() => setCurrentPage('settings')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${currentPage === 'settings'
+                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${currentPage === 'settings'
                             ? 'bg-slate-200 text-dark'
                             : 'text-slate-600 hover:bg-slate-100'
                         }`}
                 >
-                    <Icons.Settings className="h-5 w-5" />
+                    <Icons.Settings className="h-4 w-4" />
                     الإعدادات
                 </button>
                 
-                {/* زر تسجيل الخروج */}
                 {onLogout && (
                     <button
                         onClick={onLogout}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
                     >
-                        <Icons.LogOut className="h-5 w-5" />
+                        <Icons.LogOut className="h-4 w-4" />
                         تسجيل الخروج
                     </button>
                 )}

@@ -11,6 +11,8 @@ import AppSettingsPanel from './AppSettingsPanel';
 import ReasonsManager from './ReasonsManager';
 import CategoriesManager from './CategoriesManager';
 import UsersManagement from './UsersManagement';
+import PermissionGroupsManager from './PermissionGroupsManager';
+import UserGroupAssignment from './UserGroupAssignment';
 
 interface SettingsProps {
     inventory: UseInventoryReturn;
@@ -19,7 +21,7 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ inventory }) => {
     const { settings, wipeAllData, products, categories } = inventory;
     const { getSetting, updateSetting } = useSettings();
-    const [activeTab, setActiveTab] = useState<'general' | 'categories' | 'reasons' | 'users' | 'system' | 'data'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'categories' | 'reasons' | 'users' | 'groups' | 'user-groups' | 'system' | 'data'>('general');
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [resetConfirmationText, setResetConfirmationText] = useState('');
     const [companyName, setCompanyName] = useState('');
@@ -160,7 +162,27 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                                 : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
                             }`}
                         >
-                            👥 إدارة المستخدمين
+                            👥 المستخدمين
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('groups')}
+                            className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
+                                activeTab === 'groups' 
+                                ? 'border-primary text-primary' 
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            }`}
+                        >
+                            🛡️ المجموعات
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('user-groups')}
+                            className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
+                                activeTab === 'user-groups' 
+                                ? 'border-primary text-primary' 
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            }`}
+                        >
+                            🔗 ربط المستخدمين
                         </button>
                         <button
                             onClick={() => setActiveTab('system')}
@@ -345,6 +367,16 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                 {/* Users Management Tab */}
                 {activeTab === 'users' && (
                 <UsersManagement />
+                )}
+
+                {/* Permission Groups Tab */}
+                {activeTab === 'groups' && (
+                <PermissionGroupsManager />
+                )}
+
+                {/* User-Group Assignment Tab */}
+                {activeTab === 'user-groups' && (
+                <UserGroupAssignment />
                 )}
 
                 {/* Advanced Settings Tab */}
