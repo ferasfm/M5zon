@@ -70,8 +70,8 @@ const ProductPriceAnalysis: React.FC<PriceAnalysisProps> = ({
 
     priceGroups.sort((a, b) => b.count - a.count);
 
-    const totalActualCost = inventoryItems.reduce((sum, item) => sum + item.costPrice, 0);
-    const totalReferenceCost = inventoryItems.length * standardCostPrice;
+    const totalActualCost = inventoryItems.reduce((sum, item) => sum + Number(item.costPrice || 0), 0);
+    const totalReferenceCost = inventoryItems.length * Number(standardCostPrice || 0);
     const totalDifference = totalActualCost - totalReferenceCost;
 
     const itemsWithHigherPrice = inventoryItems.filter(item => item.costPrice > standardCostPrice);
@@ -158,12 +158,12 @@ const ProductPriceAnalysis: React.FC<PriceAnalysisProps> = ({
                                     <div className="font-semibold text-amber-900 mb-2">ملاحظات:</div>
                                     {itemsWithHigherPrice.length > 0 && (
                                         <div className="text-sm text-amber-800 mb-1">
-                                            • {itemsWithHigherPrice.length} صنف بسعر أعلى من المرجعي (فرق: +{formatCurrency(itemsWithHigherPrice.reduce((sum, item) => sum + (item.costPrice - standardCostPrice), 0))})
+                                            • {itemsWithHigherPrice.length} صنف بسعر أعلى من المرجعي (فرق: +{formatCurrency(itemsWithHigherPrice.reduce((sum, item) => sum + (Number(item.costPrice || 0) - Number(standardCostPrice || 0)), 0))})
                                         </div>
                                     )}
                                     {itemsWithLowerPrice.length > 0 && (
                                         <div className="text-sm text-green-700 mb-1">
-                                            • {itemsWithLowerPrice.length} صنف بسعر أقل من المرجعي (وفرت: {formatCurrency(itemsWithLowerPrice.reduce((sum, item) => sum + (standardCostPrice - item.costPrice), 0))})
+                                            • {itemsWithLowerPrice.length} صنف بسعر أقل من المرجعي (وفرت: {formatCurrency(itemsWithLowerPrice.reduce((sum, item) => sum + (Number(standardCostPrice || 0) - Number(item.costPrice || 0)), 0))})
                                         </div>
                                     )}
                                     {itemsWithSamePrice.length > 0 && (

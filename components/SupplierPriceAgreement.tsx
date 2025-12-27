@@ -32,9 +32,11 @@ const SupplierPriceAgreement: React.FC<SupplierPriceAgreementProps> = ({
 }) => {
     const { supabase } = useSupabase();
     const [products, setProducts] = useState<ProductPrice[]>([]);
+    const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'priced' | 'unpriced'>('all');
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [sortBy, setSortBy] = useState<'name' | 'price' | 'difference'>('name');
     const [viewingHistory, setViewingHistory] = useState<{ productId: string; productName: string } | null>(null);
 
@@ -56,9 +58,11 @@ const SupplierPriceAgreement: React.FC<SupplierPriceAgreementProps> = ({
             if (productsError) throw productsError;
 
             // جلب الفئات
-            const { data: categories } = await supabase
+            const { data: categoriesData } = await supabase
                 .from('categories')
                 .select('id, name');
+            
+            setCategories(categoriesData || []);
 
             // جلب أسعار هذا المورد
             const { data: supplierPrices } = await supabase
@@ -75,7 +79,7 @@ const SupplierPriceAgreement: React.FC<SupplierPriceAgreementProps> = ({
             // دمج البيانات
             const productsData: ProductPrice[] = allProducts?.map(product => {
                 const supplierPrice = supplierPrices?.find(sp => sp.product_id === product.id);
-                const category = categories?.find(c => c.id === product.category_id);
+                const category = categoriesData?.find(c => c.id === product.category_id);
                 const productInventory = inventory?.filter(i => i.product_id === product.id) || [];
                 const lastPurchase = productInventory.length > 0 
                     ? productInventory[productInventory.length - 1].cost_price 
@@ -86,11 +90,11 @@ const SupplierPriceAgreement: React.FC<SupplierPriceAgreementProps> = ({
                     productName: product.name,
                     productSku: product.sku,
                     categoryName: category?.name || 'غير مصنف',
-                    currentPrice: supplierPrice?.price,
+                    currentPrice: supplierPrice?.price ? Number(supplierPrice.price) : undefined,
                     isPreferred: supplierPrice?.is_preferred || false,
-                    lastPurchasePrice: lastPurchase,
+                    lastPurchasePrice: lastPurchase ? Number(lastPurchase) : undefined,
                     stockQuantity: productInventory.length,
-                    standardCostPrice: product.standard_cost_price,
+                    standardCostPrice: Number(product.standard_cost_price || 0),
                     lastUpdated: supplierPrice?.updated_at,
                     notes: supplierPrice?.notes
                 };
@@ -107,10 +111,16 @@ const SupplierPriceAgreement: React.FC<SupplierPriceAgreementProps> = ({
     const exportToExcel = (type: 'all' | 'priced' | 'unpriced' | 'simple') => {
         let dataToExport = products;
         
+        // فلترة حسب النوع
         if (type === 'priced') {
             dataToExport = products.filter(p => p.currentPrice !== undefined);
         } else if (type === 'unpriced') {
             dataToExport = products.filter(p => p.currentPrice === undefined);
+        }
+        
+        // فلترة حسب الفئات المختارة
+        if (selectedCategories.length > 0) {
+            dataToExport = dataToExport.filter(p => selectedCategories.includes(p.categoryName));
         }
 
         // إعداد البيانات للتصدير
@@ -388,9 +398,14 @@ const SupplierPriceAgreement: React.FC<SupplierPriceAgreementProps> = ({
         const matchesSearch = p.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             p.productSku.toLowerCase().includes(searchTerm.toLowerCase());
         
-        if (filterType === 'priced') return matchesSearch && p.currentPrice !== undefined;
-        if (filterType === 'unpriced') return matchesSearch && p.currentPrice === undefined;
-        return matchesSearch;
+        const matchesCategory = selectedCategories.length === 0 || 
+                               selectedCategories.includes(p.categoryName);
+        
+        const matchesType = filterType === 'all' ? true :
+                           filterType === 'priced' ? p.currentPrice !== undefined :
+                           p.currentPrice === undefined;
+        
+        return matchesSearch && matchesCategory && matchesType;
     });
 
     const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -414,10 +429,12 @@ const SupplierPriceAgreement: React.FC<SupplierPriceAgreementProps> = ({
         priced: products.filter(p => p.currentPrice !== undefined).length,
         unpriced: products.filter(p => p.currentPrice === undefined).length,
         preferred: products.filter(p => p.isPreferred).length,
-        avgDifference: products
-            .filter(p => p.currentPrice !== undefined)
-            .reduce((sum, p) => sum + (p.currentPrice! - p.standardCostPrice), 0) / 
-            (products.filter(p => p.currentPrice !== undefined).length || 1)
+        avgDifference: (() => {
+            const pricedProducts = products.filter(p => p.currentPrice !== undefined);
+            if (pricedProducts.length === 0) return 0;
+            const totalDiff = pricedProducts.reduce((sum, p) => sum + (Number(p.currentPrice || 0) - Number(p.standardCostPrice || 0)), 0);
+            return totalDiff / pricedProducts.length;
+        })()
     };
 
     if (isLoading) {
@@ -507,6 +524,44 @@ const SupplierPriceAgreement: React.FC<SupplierPriceAgreementProps> = ({
                                 className="flex-1 min-w-[200px]"
                             />
                             
+                            <select
+                                value={filterType}
+                                onChange={(e) => setFilterType(e.target.value as any)}
+                                className="px-4 py-2 border rounded"
+                            >
+                                <option value="all">جميع المنتجات ({stats.total})</option>
+                                <option value="priced">المسعرة فقط ({stats.priced})</option>
+                                <option value="unpriced">بدون أسعار ({stats.unpriced})</option>
+                            </select>
+
+                            <div className="relative">
+                                <select
+                                    multiple
+                                    value={selectedCategories}
+                                    onChange={(e) => {
+                                        const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                        setSelectedCategories(selected);
+                                    }}
+                                    className="px-4 py-2 border rounded min-w-[200px]"
+                                    size={1}
+                                >
+                                    <option value="" disabled>اختر الفئات...</option>
+                                    {categories.map(cat => (
+                                        <option key={cat.id} value={cat.name}>
+                                            {cat.name} ({products.filter(p => p.categoryName === cat.name).length})
+                                        </option>
+                                    ))}
+                                </select>
+                                {selectedCategories.length > 0 && (
+                                    <button
+                                        onClick={() => setSelectedCategories([])}
+                                        className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                        title="مسح الفلترة"
+                                    >
+                                        <Icons.X className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </div>
                             <select
                                 value={filterType}
                                 onChange={(e) => setFilterType(e.target.value as any)}

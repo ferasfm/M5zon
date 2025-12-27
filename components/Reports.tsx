@@ -1462,7 +1462,7 @@ const Reports: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => 
                                         <tr className="bg-slate-100 font-bold text-base">
                                             <td colSpan={4} className="px-4 py-3 text-left">الإجمالي</td>
                                             <td className="px-4 py-3">
-                                                {formatCurrency(invReportData.reduce((acc, row) => acc + row.costPrice, 0))}
+                                                {formatCurrency(invReportData.reduce((acc, row) => acc + Number(row.costPrice || 0), 0))}
                                             </td>
                                         </tr>
                                     </tfoot>

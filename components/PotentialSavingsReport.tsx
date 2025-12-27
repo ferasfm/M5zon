@@ -58,8 +58,8 @@ const PotentialSavingsReport: React.FC<PotentialSavingsReportProps> = ({ invento
 
                     if (productInventory.length === 0) return;
 
-                    const totalActualCost = productInventory.reduce((sum, item) => sum + item.costPrice, 0);
-                    const totalReferenceCost = productInventory.length * product.standardCostPrice;
+                    const totalActualCost = productInventory.reduce((sum, item) => sum + Number(item.costPrice || 0), 0);
+                    const totalReferenceCost = productInventory.length * Number(product.standardCostPrice || 0);
                     const potentialSavings = totalActualCost - totalReferenceCost;
                     const averageActualPrice = totalActualCost / productInventory.length;
 

@@ -5,6 +5,7 @@ import { Button } from './ui/Button';
 import { Icons } from './icons';
 import { Modal } from './ui/Modal';
 import PriceAgreementForm from './PriceAgreementForm';
+import SupplierPriceAgreement from './SupplierPriceAgreement';
 import { useNotification } from '../contexts/NotificationContext';
 import { formatDate } from '../utils/formatters';
 import { formatCurrency } from '../utils/currencyHelper';
@@ -22,6 +23,7 @@ const SupplierProfile: React.FC<SupplierProfileProps> = ({ supplierId, onBack, i
     const supplier = getSupplierById(supplierId);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [viewingPriceAgreement, setViewingPriceAgreement] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -76,7 +78,7 @@ const SupplierProfile: React.FC<SupplierProfileProps> = ({ supplierId, onBack, i
             
             const group = groups.get(key)!;
             group.items.push(item);
-            group.totalCost += item.costPrice;
+            group.totalCost += Number(item.costPrice || 0);
             
             if (item.status === 'in_stock') group.inStockCount++;
             else if (item.status === 'dispatched') group.dispatchedCount++;
@@ -217,14 +219,36 @@ const SupplierProfile: React.FC<SupplierProfileProps> = ({ supplierId, onBack, i
         );
     }
 
+    // عرض صفحة اتفاقية الأسعار الجديدة
+    if (viewingPriceAgreement) {
+        return (
+            <div className="space-y-4">
+                <Button onClick={() => setViewingPriceAgreement(false)} variant="secondary">
+                    <Icons.ArrowLeft className="h-4 w-4 ml-2" />
+                    العودة لملف المورد
+                </Button>
+                <SupplierPriceAgreement 
+                    supplierId={supplier.id} 
+                    supplierName={supplier.name}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-4">
-                <Button onClick={onBack} variant="ghost" size="sm">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 transform -scale-x-100"><path d="m15 18-6-6 6-6"/></svg>
-                    العودة للموردين
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <Button onClick={onBack} variant="ghost" size="sm">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 transform -scale-x-100"><path d="m15 18-6-6 6-6"/></svg>
+                        العودة للموردين
+                    </Button>
+                    <h1 className="text-3xl font-bold text-dark">{supplier.name}</h1>
+                </div>
+                <Button onClick={() => setViewingPriceAgreement(true)} variant="primary">
+                    <Icons.FileText className="h-4 w-4 ml-2" />
+                    اتفاقية الأسعار
                 </Button>
-                <h1 className="text-3xl font-bold text-dark">{supplier.name}</h1>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -240,56 +264,35 @@ const SupplierProfile: React.FC<SupplierProfileProps> = ({ supplierId, onBack, i
                     </CardContent>
                 </Card>
                 <Card className="md:col-span-2">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>اتفاقيات الأسعار</CardTitle>
-                        <div className="flex gap-2">
-                             <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" style={{ display: 'none' }} />
-                            <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()}>
-                                <Icons.Upload className="h-4 w-4 ml-2"/>
-                                استيراد
-                            </Button>
-                            <Button size="sm" variant="secondary" onClick={handleExportCSV}>
-                                <Icons.Download className="h-4 w-4 ml-2"/>
-                                تصدير
-                            </Button>
-                            <Button size="sm" onClick={() => setIsModalOpen(true)}>
-                                <Icons.PlusCircle className="h-4 w-4 ml-2"/>
-                                إضافة
-                            </Button>
-                        </div>
+                    <CardHeader>
+                        <CardTitle>إحصائيات سريعة</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        {supplier.priceAgreements && supplier.priceAgreements.length > 0 ? (
-                             <table className="w-full text-sm text-right">
-                                <thead className="text-xs text-slate-700 uppercase bg-slate-100">
-                                    <tr>
-                                        <th className="px-4 py-3">المنتج</th>
-                                        <th className="px-4 py-3">السعر المتفق عليه</th>
-                                        <th className="px-4 py-3">تاريخ البدء</th>
-                                        <th className="px-4 py-3">إجراء</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {supplier.priceAgreements.map(agreement => {
-                                        const product = getProductById(agreement.productId);
-                                        return (
-                                            <tr key={agreement.productId} className="border-b">
-                                                <td className="px-4 py-2 font-medium">{product?.name || 'منتج محذوف'}</td>
-                                                <td className="px-4 py-2">{formatCurrency(agreement.price)}</td>
-                                                <td className="px-4 py-2">{formatDate(agreement.startDate)}</td>
-                                                <td className="px-4 py-2">
-                                                    <Button variant="ghost" size="sm" className="text-danger" onClick={() => removePriceAgreement(supplier.id, agreement.productId)}>
-                                                        <Icons.Trash2 className="h-4 w-4"/>
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        )
-                                    })}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <p className="text-center text-slate-500 py-4">لا توجد اتفاقيات أسعار مسجلة لهذا المورد.</p>
-                        )}
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-blue-50 p-4 rounded-lg">
+                                <div className="text-2xl font-bold text-blue-900">{supplierItems.length}</div>
+                                <div className="text-sm text-blue-700">إجمالي القطع المشتراة</div>
+                            </div>
+                            <div className="bg-green-50 p-4 rounded-lg">
+                                <div className="text-2xl font-bold text-green-900">
+                                    {supplierItems.filter(i => i.status === 'in_stock').length}
+                                </div>
+                                <div className="text-sm text-green-700">قطع متاحة في المخزون</div>
+                            </div>
+                        </div>
+                        <div className="pt-4 border-t">
+                            <Button 
+                                onClick={() => setViewingPriceAgreement(true)} 
+                                variant="secondary"
+                                className="w-full"
+                            >
+                                <Icons.FileText className="h-4 w-4 ml-2" />
+                                إدارة اتفاقية الأسعار الشاملة
+                            </Button>
+                            <p className="text-xs text-slate-500 mt-2 text-center">
+                                عرض وتحديث أسعار جميع المنتجات مع هذا المورد
+                            </p>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
