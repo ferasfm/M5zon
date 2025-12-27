@@ -13,6 +13,7 @@ import CategoriesManager from './CategoriesManager';
 import UsersManagement from './UsersManagement';
 import PermissionGroupsManager from './PermissionGroupsManager';
 import UserGroupAssignment from './UserGroupAssignment';
+import UserGuide from './UserGuide';
 
 interface SettingsProps {
     inventory: UseInventoryReturn;
@@ -21,7 +22,7 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ inventory }) => {
     const { settings, wipeAllData, products, categories } = inventory;
     const { getSetting, updateSetting } = useSettings();
-    const [activeTab, setActiveTab] = useState<'general' | 'categories' | 'reasons' | 'users' | 'groups' | 'user-groups' | 'system' | 'data'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'categories' | 'reasons' | 'users' | 'groups' | 'user-groups' | 'system' | 'data' | 'guide'>('general');
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [resetConfirmationText, setResetConfirmationText] = useState('');
     const [companyName, setCompanyName] = useState('');
@@ -203,6 +204,16 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                             }`}
                         >
                             🗄️ إدارة البيانات
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('guide')}
+                            className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
+                                activeTab === 'guide' 
+                                ? 'border-primary text-primary' 
+                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                            }`}
+                        >
+                            📖 دليل الاستخدام
                         </button>
                     </nav>
                 </div>
@@ -416,6 +427,11 @@ const Settings: React.FC<SettingsProps> = ({ inventory }) => {
                         </div>
                     </CardContent>
                 </Card>
+                )}
+
+                {/* User Guide Tab */}
+                {activeTab === 'guide' && (
+                <UserGuide />
                 )}
 
             <Modal isOpen={isResetModalOpen} onClose={() => setIsResetModalOpen(false)} title="تأكيد إعادة تعيين البيانات">
