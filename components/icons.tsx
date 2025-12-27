@@ -113,6 +113,9 @@ export const Icons = {
     ChevronRight: (props: React.SVGProps<SVGSVGElement>) => (
         <Icon {...props}><polyline points="9 18 15 12 9 6"></polyline></Icon>
     ),
+    ArrowLeft: (props: React.SVGProps<SVGSVGElement>) => (
+        <Icon {...props}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></Icon>
+    ),
     CornerDownRight: (props: React.SVGProps<SVGSVGElement>) => (
         <Icon {...props}><polyline points="15 10 20 15 15 20"></polyline><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></Icon>
     ),
@@ -145,6 +148,9 @@ export const Icons = {
     ),
     Save: (props: React.SVGProps<SVGSVGElement>) => (
         <Icon {...props}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></Icon>
+    ),
+    TrendingUp: (props: React.SVGProps<SVGSVGElement>) => (
+        <Icon {...props}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></Icon>
     ),
     Undo: (props: React.SVGProps<SVGSVGElement>) => (
         <Icon {...props}><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></Icon>
@@ -181,5 +187,11 @@ export const Icons = {
     ),
     Copy: (props: React.SVGProps<SVGSVGElement>) => (
         <Icon {...props}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></Icon>
+    ),
+    DollarSign: (props: React.SVGProps<SVGSVGElement>) => (
+        <Icon {...props}><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></Icon>
+    ),
+    Bell: (props: React.SVGProps<SVGSVGElement>) => (
+        <Icon {...props}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></Icon>
     ),
 };

@@ -7,6 +7,7 @@ import { Icons } from './icons';
 import { Modal } from './ui/Modal';
 import SupplierForm from './SupplierForm';
 import SupplierProfile from './SupplierProfile';
+import SupplierPriceAgreement from './SupplierPriceAgreement';
 import { convertArabicInput } from '../utils/converters';
 
 const Suppliers: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
@@ -15,6 +16,7 @@ const Suppliers: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
     const [viewingSupplierId, setViewingSupplierId] = useState<string | null>(null);
+    const [viewingPriceAgreement, setViewingPriceAgreement] = useState<{ id: string; name: string } | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
     const openModalForNew = () => {
@@ -48,6 +50,21 @@ const Suppliers: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
             (s.phone && s.phone.includes(searchTerm))
         );
     }, [suppliers, searchTerm]);
+
+    if (viewingPriceAgreement) {
+        return (
+            <div className="space-y-4">
+                <Button onClick={() => setViewingPriceAgreement(null)} variant="secondary">
+                    <Icons.ArrowLeft className="h-4 w-4 ml-2" />
+                    العودة للموردين
+                </Button>
+                <SupplierPriceAgreement 
+                    supplierId={viewingPriceAgreement.id} 
+                    supplierName={viewingPriceAgreement.name}
+                />
+            </div>
+        );
+    }
 
     if (viewingSupplierId) {
         return <SupplierProfile supplierId={viewingSupplierId} onBack={() => setViewingSupplierId(null)} inventory={inventory} />;
@@ -98,6 +115,14 @@ const Suppliers: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =
                                     <td className="px-4 py-3">{supplier.email || '-'}</td>
                                     <td className="px-4 py-3">
                                         <div className="flex gap-2">
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={() => setViewingPriceAgreement({ id: supplier.id, name: supplier.name })}
+                                                title="اتفاقية الأسعار"
+                                            >
+                                                <Icons.FileText className="h-4 w-4" />
+                                            </Button>
                                             <Button variant="ghost" size="sm" onClick={() => openModalForEdit(supplier)}>
                                                 <Icons.Edit className="h-4 w-4" />
                                             </Button>

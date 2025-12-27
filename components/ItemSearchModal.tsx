@@ -25,9 +25,10 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
     initialProductId = '',
     allowedStatuses = ['in_stock'] 
 }) => {
-    const { inventoryItems, products, provinces, areas, clients, getProductById, getClientFullNameById } = inventory;
+    const { inventoryItems, products, provinces, areas, clients, categories, getProductById, getClientFullNameById } = inventory;
     const notification = useNotification();
     const [productId, setProductId] = useState(initialProductId);
+    const [categoryId, setCategoryId] = useState('');
     const [serialFilter, setSerialFilter] = useState('');
     const [selectedProvinceId, setSelectedProvinceId] = useState('');
     const [selectedAreaId, setSelectedAreaId] = useState('');
@@ -36,6 +37,7 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
     useEffect(() => {
         if (isOpen) {
             setProductId(initialProductId);
+            setCategoryId('');
             setSerialFilter('');
             setSelectedProvinceId('');
             setSelectedAreaId('');
@@ -85,9 +87,16 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
             if (productId && item.productId !== productId) return false;
             if (serialFilter && !item.serialNumber.toLowerCase().includes(serialFilter.toLowerCase())) return false;
             if (clientId && item.destinationClientId !== clientId) return false;
+            
+            // فلترة حسب الفئة
+            if (categoryId) {
+                const product = getProductById(item.productId);
+                if (!product || product.categoryId !== categoryId) return false;
+            }
+            
             return true;
         }).slice(0, 100); // Limit results to 100 for performance
-    }, [inventoryItems, allowedStatuses, productId, serialFilter, clientId]);
+    }, [inventoryItems, allowedStatuses, productId, categoryId, serialFilter, clientId, getProductById]);
     
     const handleSelect = (item: InventoryItem) => {
         if (existingItemIds.has(item.id)) {
@@ -103,7 +112,14 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
         <Modal isOpen={isOpen} onClose={onClose} title="بحث متقدم عن قطعة">
             <div className="space-y-4">
                 <div className="space-y-4 p-4 border rounded-md bg-slate-50">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">فلترة حسب الفئة</label>
+                            <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className="w-full">
+                                <option value="">كل الفئات</option>
+                                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">فلترة حسب المنتج</label>
                             <select value={productId} onChange={e => setProductId(e.target.value)} className="w-full">

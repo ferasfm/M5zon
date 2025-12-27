@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { UseInventoryReturn, Product } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
@@ -8,9 +8,12 @@ import { Modal } from './ui/Modal';
 import ProductForm from './ProductForm';
 import { convertArabicInput } from '../utils/converters';
 import { formatCurrency } from '../utils/currencyHelper';
+import SupplierProductPricing from './SupplierProductPricing';
+import { useSupabase } from '../contexts/SupabaseContext';
 
 const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) => {
-    const { products, categories, addProduct, updateProduct, deleteProduct, inventoryItems, getProductById } = inventory;
+    const { products, categories, addProduct, updateProduct, deleteProduct, inventoryItems, getProductById, suppliers } = inventory;
+    const { supabase } = useSupabase();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -18,6 +21,9 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [activeTab, setActiveTab] = useState<'standard' | 'bundle'>('standard');
+    const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+    const [selectedProductForPricing, setSelectedProductForPricing] = useState<Product | null>(null);
+    const [productPrices, setProductPrices] = useState<Record<string, { hasLowerPrice: boolean; difference: number }>>({});
 
     const openModalForNew = () => {
         setEditingProduct(null);
@@ -33,6 +39,16 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
     const closeModal = () => {
         setIsModalOpen(false);
         setEditingProduct(null);
+    };
+
+    const openPricingModal = (product: Product) => {
+        setSelectedProductForPricing(product);
+        setIsPricingModalOpen(true);
+    };
+
+    const closePricingModal = () => {
+        setIsPricingModalOpen(false);
+        setSelectedProductForPricing(null);
     };
 
     const handleSubmit = (productData: Omit<Product, 'id'> | Product) => {
@@ -52,6 +68,57 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
         return inventoryItems.filter(item => item.productId === productId && item.status === 'in_stock').length;
     };
 
+    // جلب أسعار الموردين لجميع المنتجات
+    useEffect(() => {
+        const fetchProductPrices = async () => {
+            if (!supabase || products.length === 0) return;
+
+            try {
+                const { data, error } = await supabase
+                    .from('supplier_products')
+                    .select('product_id, price, is_preferred');
+
+                if (error) {
+                    console.error('Error fetching supplier prices:', error);
+                    return;
+                }
+
+                // تحليل البيانات لكل منتج
+                const priceAnalysis: Record<string, { hasLowerPrice: boolean; difference: number }> = {};
+
+                products.forEach(product => {
+                    const productPricesList = data?.filter(p => p.product_id === product.id) || [];
+                    
+                    if (productPricesList.length > 0) {
+                        const preferredPrice = productPricesList.find(p => p.is_preferred)?.price;
+                        const lowestPrice = Math.min(...productPricesList.map(p => p.price));
+
+                        if (preferredPrice && lowestPrice < preferredPrice) {
+                            priceAnalysis[product.id] = {
+                                hasLowerPrice: true,
+                                difference: preferredPrice - lowestPrice
+                            };
+                        }
+                    }
+                });
+
+                setProductPrices(priceAnalysis);
+            } catch (error) {
+                console.error('Error in fetchProductPrices:', error);
+            }
+        };
+
+        fetchProductPrices();
+    }, [supabase, products]);
+
+    const handleProductPriceUpdate = (productId: string, newPrice: number) => {
+        // تحديث المنتج في القائمة
+        const updatedProduct = products.find(p => p.id === productId);
+        if (updatedProduct) {
+            updateProduct({ ...updatedProduct, standardCostPrice: newPrice });
+        }
+    };
+
     // Filter logic for standard products
     const filteredStandardProducts = useMemo(() => {
         // تصفية صارمة: فقط المنتجات العادية (استبعاد الحزم والمنتجات غير المحددة)
@@ -59,10 +126,6 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
             p.productType === 'standard' ||
             (!p.productType && (!p.components || p.components.length === 0))
         );
-
-        console.log('📦 إجمالي المنتجات:', products.length);
-        console.log('✅ المنتجات العادية:', standardProducts.length);
-        console.log('🔍 المنتجات المصفاة:', standardProducts.map(p => ({ name: p.name, type: p.productType })));
 
         return standardProducts.filter(p => {
             const matchesSearch = !searchTerm || (
@@ -195,10 +258,32 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
                                                 return <span className="text-slate-400">{product.category || 'غير محدد'}</span>;
                                             })()}
                                         </td>
-                                        <td className="px-4 py-3">{formatCurrency(product.standardCostPrice)}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2">
+                                                <span>{formatCurrency(product.standardCostPrice)}</span>
+                                                {productPrices[product.id]?.hasLowerPrice && (
+                                                    <span 
+                                                        className="text-amber-500 cursor-help" 
+                                                        title={`يوجد سعر أقل بـ ${formatCurrency(productPrices[product.id].difference)}`}
+                                                    >
+                                                        <Icons.Bell className="h-4 w-4 animate-pulse" />
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3 font-bold">{getStockCount(product.id)}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex gap-2">
+                                                {suppliers && suppliers.length > 0 && (
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        onClick={() => openPricingModal(product)}
+                                                        title="أسعار الموردين"
+                                                    >
+                                                        <Icons.DollarSign className="h-4 w-4" />
+                                                    </Button>
+                                                )}
                                                 <Button variant="ghost" size="sm" onClick={() => openModalForEdit(product)}>
                                                     <Icons.Edit className="h-4 w-4" />
                                                 </Button>
@@ -246,10 +331,10 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
                                         <td className="px-4 py-3">
                                             {bundle.components && bundle.components.length > 0 ? (
                                                 <div className="text-xs space-y-1">
-                                                    {bundle.components.map((comp, idx) => {
+                                                    {bundle.components.map((comp) => {
                                                         const product = getProductById(comp.productId);
                                                         return (
-                                                            <div key={idx} className="text-slate-600">
+                                                            <div key={`${bundle.id}-${comp.productId}`} className="text-slate-600">
                                                                 • {product?.name || 'منتج محذوف'} × {comp.quantity}
                                                             </div>
                                                         );
@@ -284,20 +369,45 @@ const Products: React.FC<{ inventory: UseInventoryReturn }> = ({ inventory }) =>
                 </Card>
             )}
 
-            <Modal
-                isOpen={isModalOpen}
-                onClose={closeModal}
-                title={editingProduct ? `تعديل: ${editingProduct.name}` : 'إضافة منتج جديد'}
-            >
-                <ProductForm
-                    product={editingProduct}
-                    productTypeForCreation={productTypeForCreation}
-                    products={products}
-                    categories={categories}
-                    onSubmit={handleSubmit}
-                    onCancel={closeModal}
-                />
-            </Modal>
+            {isModalOpen && (
+                <Modal
+                    isOpen={true}
+                    onClose={closeModal}
+                    title={editingProduct ? `تعديل: ${editingProduct.name}` : 'إضافة منتج جديد'}
+                >
+                    <ProductForm
+                        product={editingProduct}
+                        productTypeForCreation={productTypeForCreation}
+                        products={products}
+                        categories={categories}
+                        onSubmit={handleSubmit}
+                        onCancel={closeModal}
+                    />
+                </Modal>
+            )}
+
+            {/* Modal for Supplier Pricing */}
+            {isPricingModalOpen && selectedProductForPricing && (
+                <Modal
+                    isOpen={true}
+                    onClose={closePricingModal}
+                    title={`أسعار الموردين: ${selectedProductForPricing.name}`}
+                >
+                    {suppliers && suppliers.length > 0 ? (
+                        <div className="p-6">
+                            <SupplierProductPricing
+                                productId={selectedProductForPricing.id}
+                                suppliers={suppliers}
+                                onProductPriceUpdate={(newPrice) => handleProductPriceUpdate(selectedProductForPricing.id, newPrice)}
+                            />
+                        </div>
+                    ) : (
+                        <div className="p-6 text-center text-gray-500">
+                            <p>لا توجد موردين في النظام</p>
+                        </div>
+                    )}
+                </Modal>
+            )}
         </div>
     );
 };
